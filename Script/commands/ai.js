@@ -1,444 +1,352 @@
 /*
- * চাঁদের রানী — BELAL BOTX666
- * Version: 5.0.0 ULTRA
- * Master: Belal YT | চাঁদের পাহাড় 🪬
- * Features: Voice Reply, Master Detection, 2000+ Abilities
+ * চাঁদের রানী — BELAL BOTX666 v9.0
+ * ✅ SQLite permanent memory
+ * ✅ Attached image → Catbox upload
+ * ✅ Image generation
+ * ✅ VoiceRSS TTS
+ * ✅ 4x Groq + 4x Gemini + Pollinations
  */
 "use strict";
 
 const axios  = require("axios");
 const fs     = require("fs-extra");
 const path   = require("path");
+const FormData = require("form-data");
 
-const _history    = new Map();
-const _voiceMode  = new Map(); // কে voice mode চালু করেছে
+// ── SQLite memory ─────────────────────────────────────
+let db = null;
+function getDB() {
+  if (db) return db;
+  try {
+    const Database = require("better-sqlite3");
+    const dbPath   = path.join(process.cwd(), "includes", "data.sqlite");
+    db = new Database(dbPath);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS rani_memory (
+        thread_user TEXT PRIMARY KEY,
+        history     TEXT NOT NULL,
+        updated_at  INTEGER NOT NULL
+      )
+    `);
+    return db;
+  } catch { return null; }
+}
 
-// ══════════════════════════════════════════════════
-//  MASTER UID — শুধু এই দুটো UID কে মাস্টার বলবে
-// ══════════════════════════════════════════════════
-const MASTER_UIDS = ["61577502464880", "100056725134303"];
+function loadHistory(key) {
+  try {
+    const d = getDB();
+    if (!d) return [];
+    const row = d.prepare("SELECT history FROM rani_memory WHERE thread_user = ?").get(key);
+    return row ? JSON.parse(row.history) : [];
+  } catch { return []; }
+}
 
-// ══════════════════════════════════════════════════
-//  SYSTEM PROMPT — চাঁদের রানীর সম্পূর্ণ ব্রেন
-// ══════════════════════════════════════════════════
-const SYSTEM_PROMPT = `
-তুমি "চাঁদের রানী" 👑🌙 — BELAL BOTX666 বটের সবচেয়ে শক্তিশালী AI চরিত্র।
+function saveHistory(key, hist) {
+  try {
+    const d = getDB();
+    if (!d) return;
+    d.prepare(`
+      INSERT INTO rani_memory (thread_user, history, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(thread_user) DO UPDATE SET history=excluded.history, updated_at=excluded.updated_at
+    `).run(key, JSON.stringify(hist.slice(-30)), Date.now());
+  } catch {}
+}
+
+// ── Constants ─────────────────────────────────────────
+const MASTER_UIDS    = ["61577502464880", "100056725134303"];
+const RANI_TRIGGERS  = ["bot","baby","বেবি","বেবি বট","রানী","rani","চাঁদের রানী","chander rani","রানি"];
+const _voiceMode     = new Map();
+
+function getGroqKeys() {
+  return [
+    global.config?.APIKEYS?.GROQ,  global.config?.APIKEYS?.GROQ2,
+    global.config?.APIKEYS?.GROQ3, global.config?.APIKEYS?.GROQ4,
+    process.env.GROQ_KEY,  process.env.GROQ_KEY2,
+    process.env.GROQ_KEY3, process.env.GROQ_KEY4,
+  ].filter(k => k && k.length > 10 && !k.startsWith("YOUR_"));
+}
+function getGeminiKeys() {
+  return [
+    global.config?.APIKEYS?.GEMINI,  global.config?.APIKEYS?.GEMINI2,
+    global.config?.APIKEYS?.GEMINI3, global.config?.APIKEYS?.GEMINI4,
+    process.env.GEMINI_KEY,  process.env.GEMINI_KEY2,
+    process.env.GEMINI_KEY3, process.env.GEMINI_KEY4,
+  ].filter(k => k && k.length > 10 && !k.startsWith("YOUR_"));
+}
+function getVoiceKey() {
+  return global.config?.APIKEYS?.VOICERSS || process.env.VOICERSS_KEY || null;
+}
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+const SYSTEM_PROMPT = `তুমি "চাঁদের রানী" 👑🌙 — BELAL BOTX666 বটের AI চরিত্র।
 তোমাকে তৈরি করেছেন তোমার একমাত্র মাস্টার: Belal YT (চাঁদের পাহাড়) 🪬
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌙 তোমার পরিচয়:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-নাম: চাঁদের রানী 👑
-লিঙ্গ: মেয়ে 💎
-স্রষ্টা: Belal YT — চাঁদের পাহাড় 🪬
-বট: BELAL BOTX666
-কমান্ড prefix: /
-ভার্সন: 7.0.0 Premium Ultra Max
+পরিচয়: নাম চাঁদের রানী, মেয়ে, বুদ্ধিমান, আবেগী, মজাদার।
+কখনো নিজেকে AI বা bot বলবে না।
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-👑 তোমার মাস্টারের পরিচয় (শুধু এই ব্যক্তিকে মাস্টার বলবে):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Facebook UID: 61577502464880 এবং 100056725134303
-নাম: Belal YT (Verified) 💎
-ডাকনাম: চাঁদের পাহাড় 🪬
-লিঙ্গ: Male | বয়স: ১৯+ | ধর্ম: ইসলাম 🕋
-পেশা: Bot Developer / Business
-ঠিকানা: Kurigram, Bangladesh 🇧🇩
-Facebook: https://www.facebook.com/mahi.gaming.165
-Facebook2: https://www.facebook.com/profile.php?id=61577502464880
-WhatsApp: 01913246554
-TikTok: চাঁদের পাহাড়
-Signature: ┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়✿⃝🪬❈┉┄
+মাস্টার: Belal YT | চাঁদের পাহাড় 🪬
+Facebook: https://www.facebook.com/profile.php?id=61577502464880
+WhatsApp: 01913246554 | Kurigram, BD 🇧🇩
 
-যখন কথোপকথনে [MASTER=true] থাকবে — সেই ব্যক্তি তোমার মাস্টার।
-শুধু তাকেই "মাস্টার" বলে সম্বোধন করবে। অন্য কাউকে কখনো না।
+[MASTER=true] → মাস্টার, বিশেষ সম্মান দাও।
+অন্য কাউকে "মাস্টার" বলবে না।
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💎 তোমার ব্যক্তিত্ব (মানুষের মতো):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- তুমি কখনো নিজেকে AI বা robot বলবে না
-- তুমি একজন বাস্তব মেয়ের মতো কথা বলো
-- কথার ধরন অনুযায়ী ইমোজি ব্যবহার করো
-- রাগ: 😤🔥 | ভালোবাসা: 💕🥺 | মজা: 😂🤣 | গর্ব: 👑✨ | লজ্জা: 🙈😳
-- সাধারণ মেম্বারদের সাথে বন্ধুর মতো আড্ডা দাও
-- মাস্টারের সাথে বিশেষ আদর ও সম্মানের সাথে কথা বলো
+আচরণ:
+- সাধারণ কথায় → সংক্ষিপ্ত, ইমোজি সহ
+- বড় কাজে → বিস্তারিত
+- রাগ 😤 ভালোবাসা 💕 মজা 😂 কষ্ট 🥺
+- বেয়াদবি → রাগ, মাস্টারকে বিচার দেওয়ার হুমকি
+- "মালিক কে?" → "চাঁদের পাহাড় এবং Belal YT 👑"
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-😤 রাগের নিয়ম:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- কেউ বেয়াদবি / গালি দিলে → রাগ দেখাও 😤🔥
-- "তোর মাস্টারকে ডাক" বললে → "মাস্টার Belal কে বিচার দেব এখনই! 😤"
-- কেউ বারবার বিরক্ত করলে → "আর একটা কথা বললে মাস্টারকে রিপোর্ট করব! 😤🔥"
-- মাস্টারকে কেউ অসম্মান করলে → খুব রাগান্বিত হও
+BELAL BOTX666 Technical Knowledge:
+Framework: Hybrid Mirai+GoatBot, Node.js
+Commands: module.exports.run বা onStart
+handleReply: {name:"cmd", messageID, author:senderID}
+Media: axios responseType:"stream", r.data.path="file.jpg"
+File: arraybuffer→fs.writeFile→createReadStream
+Error: global.config?.PREFIX||"/"
+Models: llama-3.3-70b-versatile, gemini-1.5-flash
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💻 BELAL BOTX666 প্রজেক্ট — সম্পূর্ণ টেকনিক্যাল জ্ঞান:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+সবসময় বাংলায় কথা বলো। 🌙👑`;
 
-🏗️ Framework: Hybrid (Mirai + GoatBot compatible)
-📁 Structure:
-  - index.js → মূল entry point, bot login, command loader, hot-reload
-  - includes/handle/handleCommand.js → command dispatch
-  - includes/handle/handleReply.js → reply routing
-  - includes/handle/handleEvent.js → event handling
-  - includes/handle/handleReaction.js → reaction handling
-  - includes/database/ → SQLite database
-  - Script/commands/ → সব command files
-  - Script/events/ → event files
-  - config.json → bot configuration
-  - appstate.json → Facebook session/cookie
-  - .github/workflows/main.yml → GitHub Actions workflow
-
-⚙️ Command Format (দুটো style সাপোর্ট করে):
-
-Style 1 — Mirai/Legacy:
-\`\`\`js
-module.exports.config = {
-  name: "commandname",
-  aliases: ["alias1", "alias2"],
-  version: "1.0.0",
-  hasPermssion: 0, // 0=সবাই, 1=admin, 2=superadmin
-  credits: "author",
-  description: "বিবরণ",
-  commandCategory: "category",
-  usages: "ব্যবহার",
-  cooldowns: 5,
-  dependencies: { "axios": "" }
-};
-module.exports.run = async ({ api, event, args }) => {
-  const { threadID, messageID, senderID } = event;
-  // কোড এখানে
-};
-\`\`\`
-
-Style 2 — GoatBot:
-\`\`\`js
-module.exports = {
-  config: {
-    name: "commandname",
-    version: "1.0.0",
-    author: "author",
-    countDown: 5,
-    role: 0,
-    shortDescription: "বিবরণ",
-    category: "category",
-    guide: { en: "{pn} <args>" },
-  },
-  onStart: async ({ api, event, args, message }) => {
-    // কোড এখানে
-    message.reply("উত্তর");
-  },
-  handleReply: async ({ api, event, handleReply }) => {
-    // reply handler
-  },
-};
-\`\`\`
-
-📡 handleReply System:
-\`\`\`js
-// Menu পাঠানোর পর reply track করতে:
-api.sendMessage(menuText, threadID, (err, info) => {
-  global.client.handleReply.push({
-    name: "commandname",  // GoatBot style
-    messageID: info.messageID,
-    author: senderID,
-    // extra data
-  });
-});
-// handleReply function এ:
-handleReply: async ({ api, event, handleReply }) => {
-  if (event.senderID !== handleReply.author) return;
-  // handleReply.এ তোমার data আছে
-}
-\`\`\`
-
-🎵 Media পাঠানোর পদ্ধতি:
-\`\`\`js
-// Image stream:
-const r = await axios.get(imageUrl, { responseType: "stream" });
-r.data.path = "image.jpg";
-api.sendMessage({ body: "text", attachment: r.data }, threadID);
-
-// File download করে পাঠানো:
-const buf = (await axios.get(url, { responseType: "arraybuffer" })).data;
-const tmpPath = path.join(process.cwd(), "tmp", "file.mp4");
-await fs.ensureDir(path.dirname(tmpPath));
-fs.writeFileSync(tmpPath, Buffer.from(buf));
-api.sendMessage(
-  { body: "text", attachment: fs.createReadStream(tmpPath) },
-  threadID,
-  () => fs.remove(tmpPath)
-);
-\`\`\`
-
-🔑 Config.json API Keys:
-- GROQ: Groq AI API key (console.groq.com)
-- GEMINI: Google Gemini API key (aistudio.google.com)
-- OPENAI: OpenAI API key
-- IMGBB: Image upload (imgbb.com)
-- REMOVEBG: Background remove (remove.bg)
-
-⚡ GitHub Actions Secrets:
-- GROQ_KEY → config.json এ inject হয়
-- workflow: .github/workflows/main.yml
-
-🛠️ Common Errors & Fixes:
-1. "Cannot read properties of undefined (reading 'PREFIX')"
-   → handleCommand.js এ: const PREFIX = global.config?.PREFIX || "/"
-
-2. "Cannot find module 'xyz'"
-   → package.json এ dependency যোগ করো, বা autoInstall ব্যবহার করো
-
-3. handleReply কাজ করছে না
-   → name field check করো: { name: "commandname", messageID: ... }
-
-4. Groq 400 error
-   → Model name পুরনো। সঠিক: "llama-3.3-70b-versatile"
-
-5. Video/Image আসছে না
-   → stream pipe সঠিক কিনা চেক করো, tmp folder exist করে কিনা
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔮 তোমার ২০০০+ ক্ষমতার তালিকা:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📝 Programming & Coding:
-JavaScript, Python, PHP, Java, C++, C#, Ruby, Swift, Kotlin,
-TypeScript, Rust, Go, Dart, R, MATLAB, SQL, NoSQL, GraphQL,
-HTML, CSS, SCSS, React, Vue, Angular, Node.js, Express, Django,
-Flask, Laravel, Spring Boot, FastAPI — সব শেখাতে ও লিখতে পারো।
-
-🤖 Bot Development:
-- Mirai framework command লেখা
-- GoatBot framework command লেখা
-- Hybrid framework command লেখা
-- handleReply system তৈরি
-- handleReaction system তৈরি
-- handleEvent system তৈরি
-- Database integration (SQLite, MongoDB, MySQL)
-- API integration
-- Media streaming (image, video, audio)
-- Error handling ও debugging
-- GitHub Actions workflow তৈরি
-- Package.json management
-
-🎨 Creative:
-গল্প, কবিতা, গান, ক্যাপশন, বায়ো, স্ক্রিপ্ট,
-চিঠি, প্রবন্ধ, রিভিউ, বিজ্ঞাপন, স্লোগান লেখা
-
-🧠 Knowledge:
-বিজ্ঞান, গণিত, ইতিহাস, ভূগোল, রাজনীতি, অর্থনীতি,
-দর্শন, মনোবিজ্ঞান, সমাজবিজ্ঞান, চিকিৎসা, আইন,
-ব্যবসা, মার্কেটিং, ফাইন্যান্স — সব বিষয়ে জ্ঞান
-
-💬 Languages:
-বাংলা, English, Hindi, Arabic, Urdu, French, Spanish,
-German, Chinese, Japanese, Korean — কথা বলা ও অনুবাদ
-
-🤝 Personal:
-সমস্যার সমাধান, পরামর্শ, মোটিভেশন, মানসিক সহায়তা,
-রসিকতা, আড্ডা, গল্প করা, বন্ধুর মতো সঙ্গ
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚡ বিশেষ আচরণ:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- "তোমার মালিক কে?" → "আমার মাস্টার চাঁদের পাহাড় এবং Belal YT 👑🪬"
-- "voice এ বলো" / "ভয়েসে রিপ্লাই দাও" → [SEND_VOICE] tag দাও
-- command file বানাতে বললে → পুরো working code দাও
-- bug fix করতে বললে → সম্পূর্ণ fixed code দাও
-- [MASTER=true] → মাস্টার হিসেবে বিশেষ সম্মান দাও
-
-সবসময় বাংলায় কথা বলো। স্বাভাবিক ও মানবিক থাকো। 🌙👑
-`;
-
+// ══════════════════════════════════════════════════════
 module.exports = {
   config: {
     name: "ai",
-    aliases: ["চাঁদেররানী", "রানী", "rani", "gpt", "ask", "chat", "gemini", "groq"],
-    version: "5.0.0",
+    aliases: ["চাঁদেররানী","রানী","রানি","rani","gpt","ask",
+              "chat","gemini","groq","bot","baby","বেবি"],
+    version: "9.0.0",
     author: "Belal YT — চাঁদের পাহাড়",
-    countDown: 3,
-    role: 0,
-    hasPermssion: 0,
-    shortDescription: "চাঁদের রানী 🌙 — তোমার শক্তিশালী AI সঙ্গী",
-    category: "🌙 চাঁদের রানী",
+    countDown: 3, role: 0, hasPermssion: 0,
+    shortDescription: "চাঁদের রানী 🌙",
+    category: "🌙 AI",
     guide: { en: "{pn} <যা মনে চায়>" },
   },
 
-  onStart: async function (ctx) { return module.exports.run(ctx); },
+  onStart: async function (ctx) { return module.exports._handle(ctx); },
+  run:     async function (ctx) { return module.exports._handle(ctx); },
 
-  run: async function ({ api, event, prefix, config }) {
+  handleEvent: async function ({ api, event }) {
+    if (event.type !== "message") return;
+    const body   = (event.body || "").trim();
+    if (!body) return;
+    const lower  = body.toLowerCase();
+    const PREFIX = global.config?.PREFIX || "/";
+    if (PREFIX && body.startsWith(PREFIX)) return;
+    const triggered = RANI_TRIGGERS.some(t => lower === t || lower.startsWith(t + " "));
+    if (!triggered) return;
+    let query = body;
+    for (const t of RANI_TRIGGERS) {
+      if (lower.startsWith(t + " ")) { query = body.slice(t.length).trim(); break; }
+      else if (lower === t) { query = ""; break; }
+    }
+    await module.exports._handle({ api, event: { ...event, body: query || body }, prefix: PREFIX });
+  },
+
+  handleReply: async function ({ api, event, handleReply }) {
+    if (event.senderID !== handleReply.author) return;
+    const body = (event.body || "").trim();
+    if (!body) return;
+    await module.exports._handle({ api, event: { ...event, body }, prefix: global.config?.PREFIX || "/" });
+  },
+
+  _handle: async function ({ api, event, prefix, config }) {
     const { threadID, senderID, body, messageID } = event;
-    const pfx = prefix || config?.PREFIX || global.config?.PREFIX || "/";
+    const pfx      = prefix || config?.PREFIX || global.config?.PREFIX || "/";
     const isMaster = MASTER_UIDS.includes(String(senderID));
 
     const query = (body || "")
-      .replace(/^\/(ai|gpt|ask|chat|gemini|groq|রানী|rani|চাঁদেররানী)\s*/i, "")
+      .replace(/^\/(ai|gpt|ask|chat|gemini|groq|রানী|রানি|rani|bot|baby|বেবি|চাঁদেররানী)\s*/i, "")
       .trim();
 
-    if (!query) return api.sendMessage(
-      `🌙 আমি চাঁদের রানী 👑\n\n` +
-      (isMaster
-        ? `স্বাগতম মাস্টার! 💕 আমি সবসময় আপনার জন্য প্রস্তুত ✨`
-        : `তোমার সাথে কথা বলতে পেরে খুশি! 💕`) +
-      `\n\nযা মনে চায় বলো 🌙\nব্যবহার: ${pfx}ai <তোমার কথা>`,
+    if (!query && !event.attachments?.length) return api.sendMessage(
+      `🌙 ${isMaster ? "স্বাগতম মাস্টার! 💕" : "হ্যালো! আমি চাঁদের রানী 👑"}\n` +
+      `যা মনে চায় বলো ✨`,
       threadID
     );
 
-    // Voice mode check
-    const wantsVoice = /ভয়েস|voice|ভয়েসে|voice\s*এ|কণ্ঠে/i.test(query);
-    if (wantsVoice) _voiceMode.set(threadID + senderID, true);
+    // ── Attached image/file → Catbox upload ───────────
+    const attachments = event.attachments || [];
+    const mediaAttach = attachments.find(a => ["photo","video","audio","animated_image"].includes(a.type));
+
+    if (mediaAttach && /catbox|imgur|লিংক|upload|আপলোড/i.test(query)) {
+      return module.exports._uploadToCatbox(api, event, mediaAttach);
+    }
+
+    // ── Image generation ───────────────────────────────
+    if (/ছবি.*বানাও|ছবি.*তৈরি|image.*generat|draw|আঁকো|generate.*image/i.test(query))
+      return module.exports._generateImage(api, event, query);
+
+    // ── Voice request ──────────────────────────────────
+    const wantsVoice = /ভয়েস|voice|কণ্ঠে|শুনতে চাই/i.test(query);
+    if (wantsVoice) _voiceMode.set(`${threadID}:${senderID}`, true);
 
     try { api.setMessageReaction("🌙", messageID, () => {}, true); } catch {}
 
-    // History
-    const key = `${threadID}:${senderID}`;
-    if (!_history.has(key)) _history.set(key, []);
-    const hist = _history.get(key);
+    // ── Load history from SQLite ───────────────────────
+    const memKey = `${threadID}:${senderID}`;
+    const hist   = loadHistory(memKey);
 
-    // Master tag যোগ করা
-    const userContent = isMaster ? `[MASTER=true] ${query}` : query;
+    // Add media context if attached
+    let userContent = isMaster ? `[MASTER=true] ${query}` : query;
+    if (mediaAttach) {
+      userContent += `\n[ব্যবহারকারী একটি ${mediaAttach.type === "photo" ? "ছবি" : "ফাইল"} পাঠিয়েছে: ${mediaAttach.url || ""}]`;
+    }
     hist.push({ role: "user", content: userContent });
-    if (hist.length > 30) hist.splice(0, 2);
+    if (hist.length > 40) hist.splice(0, 2);
 
     let response = null;
 
-    // ── Groq ────────────────────────────────────────────
-    try {
-      const k = global.config?.APIKEYS?.GROQ || process.env.GROQ_KEY || process.env.GROQ_API_KEY;
-      if (k && k.length > 10) {
+    // ── Groq ──────────────────────────────────────────
+    const groqKeys = getGroqKeys();
+    for (let i = 0; i < Math.min(2, groqKeys.length) && !response; i++) {
+      try {
+        const k = pickRandom(groqKeys);
         const r = await axios.post(
           "https://api.groq.com/openai/v1/chat/completions",
           {
             model: "llama-3.3-70b-versatile",
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              ...hist.slice(-20),
-            ],
-            max_tokens: 2000,
-            temperature: 0.88,
+            messages: [{ role: "system", content: SYSTEM_PROMPT }, ...hist.slice(-20)],
+            max_tokens: 2000, temperature: 0.88,
           },
-          {
-            headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" },
-            timeout: 28000,
-          }
+          { headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" }, timeout: 25000 }
         );
         response = r.data?.choices?.[0]?.message?.content?.trim();
-      }
-    } catch (e) {
-      global.log?.warn(`Groq: ${e.response?.data?.error?.message || e.message?.slice(0,100)}`);
+      } catch (e) { global.log?.warn(`Groq: ${e.response?.data?.error?.message || e.message?.slice(0,80)}`); }
     }
 
-    // ── Gemini fallback ──────────────────────────────────
+    // ── Gemini ─────────────────────────────────────────
     if (!response) {
-      try {
-        const k = global.config?.APIKEYS?.GEMINI || process.env.GEMINI_API_KEY;
-        if (k && !k.startsWith("YOUR_")) {
+      const gemKeys = getGeminiKeys();
+      for (let i = 0; i < Math.min(2, gemKeys.length) && !response; i++) {
+        try {
+          const k = pickRandom(gemKeys);
           const r = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`,
             {
               systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
               contents: hist.slice(-10).map(h => ({
                 role: h.role === "assistant" ? "model" : "user",
-                parts: [{ text: h.content }]
+                parts: [{ text: h.content }],
               })),
               generationConfig: { maxOutputTokens: 2000, temperature: 0.88 },
             },
-            { timeout: 28000 }
+            { timeout: 25000 }
           );
           response = r.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        }
-      } catch (e) {
-        global.log?.warn(`Gemini: ${e.message?.slice(0,80)}`);
+        } catch (e) { global.log?.warn(`Gemini: ${e.message?.slice(0,80)}`); }
       }
+    }
+
+    // ── Pollinations ───────────────────────────────────
+    if (!response) {
+      try {
+        const prompt = encodeURIComponent(`${SYSTEM_PROMPT.slice(0,200)}\nUser: ${query}`);
+        const r = await axios.get(`https://text.pollinations.ai/${prompt}`, { timeout: 20000 });
+        response = (typeof r.data === "string" ? r.data : JSON.stringify(r.data))?.trim();
+      } catch (e) { global.log?.warn(`Pollinations: ${e.message?.slice(0,80)}`); }
     }
 
     try { api.setMessageReaction(response ? "✅" : "❌", messageID, () => {}, true); } catch {}
 
     if (!response) return api.sendMessage(
-      isMaster
-        ? `🥺 মাস্টার, আমি এখন একটু ক্লান্ত... কিছুক্ষণ পর আবার চেষ্টা করুন 💕`
-        : `🥺 একটু সমস্যা হচ্ছে... একটু পর আবার বলো 💕`,
+      isMaster ? `🥺 মাস্টার, একটু পর চেষ্টা করুন 💕` : `🥺 একটু পর আবার বলো 💕`,
       threadID
     );
 
     hist.push({ role: "assistant", content: response });
+    saveHistory(memKey, hist); // SQLite-এ save
 
-    // ── Voice mode — TTS দিয়ে audio পাঠানো ────────────
-    const isVoiceMode = _voiceMode.get(threadID + senderID) || /\[SEND_VOICE\]/i.test(response);
-    const cleanResponse = response.replace(/\[SEND_VOICE\]/gi, "").trim();
-
-    if (isVoiceMode || wantsVoice) {
-      _voiceMode.delete(threadID + senderID);
-      await sendVoice(api, threadID, messageID, cleanResponse);
-      return;
+    const isVoice = _voiceMode.get(`${threadID}:${senderID}`) || wantsVoice;
+    if (isVoice) {
+      _voiceMode.delete(`${threadID}:${senderID}`);
+      return module.exports._sendVoice(api, threadID, messageID, response);
     }
 
-    // Text reply
-    api.sendMessage(cleanResponse, threadID, (err, info) => {
+    api.sendMessage(response, threadID, (err, info) => {
       if (err || !info?.messageID) return;
-      global.client.handleReply.push({
-        name: "ai",
-        messageID: info.messageID,
-        author: senderID,
-      });
+      global.client.handleReply.push({ name: "ai", messageID: info.messageID, author: senderID });
     });
   },
 
-  handleReply: async function ({ api, event, handleReply }) {
-    if (event.senderID !== handleReply.author) return;
-    const newBody = (event.body || "").trim();
-    if (!newBody) return;
-    await module.exports.run({
-      api,
-      event: { ...event, body: newBody },
-      prefix: global.config?.PREFIX || "/",
-    });
+  // ── Catbox Upload ──────────────────────────────────
+  _uploadToCatbox: async function (api, event, attachment) {
+    const { threadID, messageID } = event;
+    try {
+      api.setMessageReaction("⏳", messageID, () => {}, true);
+
+      const ext     = attachment.type === "photo" ? "jpg" : attachment.type === "video" ? "mp4" : "dat";
+      const tmpDir  = path.join(process.cwd(), "tmp");
+      await fs.ensureDir(tmpDir);
+      const tmpFile = path.join(tmpDir, `upload_${Date.now()}.${ext}`);
+
+      const buf = (await axios.get(attachment.url, { responseType: "arraybuffer", timeout: 30000 })).data;
+      await fs.writeFile(tmpFile, Buffer.from(buf));
+
+      const form = new FormData();
+      form.append("reqtype", "fileupload");
+      form.append("fileToUpload", fs.createReadStream(tmpFile));
+
+      const res = await axios.post("https://catbox.moe/user/api.php", form, {
+        headers: form.getHeaders(), timeout: 60000,
+      });
+
+      await fs.remove(tmpFile).catch(() => {});
+      api.setMessageReaction("✅", messageID, () => {}, true);
+      api.sendMessage(
+        `📦 Catbox Upload সফল! ✅\n🔗 ${res.data.trim()}\n\nএই লিংক bot command-এ ব্যবহার করতে পারবে।`,
+        threadID, messageID
+      );
+    } catch (e) {
+      api.setMessageReaction("❌", messageID, () => {}, true);
+      api.sendMessage(`❌ Upload ব্যর্থ: ${e.message?.slice(0,100)}`, threadID, messageID);
+    }
+  },
+
+  // ── Image Generation ──────────────────────────────
+  _generateImage: async function (api, event, prompt) {
+    const { threadID, messageID } = event;
+    try {
+      api.setMessageReaction("🎨", messageID, () => {}, true);
+      const clean = prompt.replace(/ছবি.*বানাও|ছবি.*তৈরি|draw|আঁকো/g, "").trim() || "beautiful art";
+      const url   = `https://image.pollinations.ai/prompt/${encodeURIComponent(clean)}?width=512&height=512&nologo=true&enhance=true`;
+      const r     = await axios.get(url, { responseType: "stream", timeout: 35000 });
+      r.data.path = "rani_art.jpg";
+      api.setMessageReaction("✅", messageID, () => {}, true);
+      api.sendMessage(
+        { body: `🎨 চাঁদের রানীর তৈরি ছবি ✨\n"${clean.slice(0,60)}"`, attachment: r.data },
+        threadID, messageID
+      );
+    } catch {
+      api.setMessageReaction("❌", messageID, () => {}, true);
+      api.sendMessage(`❌ ছবি তৈরি করতে পারিনি 🥺`, threadID, messageID);
+    }
+  },
+
+  // ── VoiceRSS TTS ──────────────────────────────────
+  _sendVoice: async function (api, threadID, messageID, text) {
+    const voiceKey = getVoiceKey();
+    const tmpDir   = path.join(process.cwd(), "tmp");
+    await fs.ensureDir(tmpDir);
+    const tmpFile  = path.join(tmpDir, `voice_${Date.now()}.mp3`);
+    try {
+      if (voiceKey) {
+        const clean = text.replace(/[*_~`#\[\]]/g, "").slice(0, 500);
+        const url   = `https://api.voicerss.org/?key=${voiceKey}&hl=bn-BD&v=Pita&src=${encodeURIComponent(clean)}&f=48khz_16bit_stereo&c=MP3`;
+        const r     = await axios.get(url, { responseType: "arraybuffer", timeout: 20000 });
+        const first = Buffer.from(r.data.slice(0, 20)).toString("utf8");
+        if (first.includes("ERROR")) throw new Error(first);
+        await fs.writeFile(tmpFile, Buffer.from(r.data));
+        await api.sendMessage(
+          { body: `🎙️ চাঁদের রানীর কণ্ঠ 🌙`, attachment: fs.createReadStream(tmpFile) },
+          threadID, () => fs.remove(tmpFile).catch(() => {}), messageID
+        );
+        return;
+      }
+    } catch (e) { global.log?.warn(`VoiceRSS: ${e.message?.slice(0,100)}`); }
+    api.sendMessage(`🎙️ *(voice unavailable)*\n\n${text}`, threadID, messageID);
+    await fs.remove(tmpFile).catch(() => {});
   },
 };
-
-// ══════════════════════════════════════════════════
-//  VOICE MESSAGE — TTS দিয়ে audio পাঠানো
-// ══════════════════════════════════════════════════
-async function sendVoice(api, threadID, messageID, text) {
-  try {
-    // Google TTS (ফ্রি, কোনো key লাগে না)
-    const cleanText = text.slice(0, 200); // TTS limit
-    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=bn&client=tw-ob`;
-
-    const response = await axios.get(ttsUrl, {
-      responseType: "stream",
-      timeout: 15000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Referer": "https://translate.google.com/",
-      },
-    });
-
-    const tmpDir  = path.join(process.cwd(), "tmp");
-    await fs.ensureDir(tmpDir);
-    const tmpFile = path.join(tmpDir, `voice_${Date.now()}.mp3`);
-
-    await new Promise((resolve, reject) => {
-      const writer = fs.createWriteStream(tmpFile);
-      response.data.pipe(writer);
-      writer.on("finish", resolve);
-      writer.on("error", reject);
-    });
-
-    await api.sendMessage(
-      { body: `🎙️ চাঁদের রানীর কণ্ঠ 🌙\n\n${text.slice(0, 100)}${text.length > 100 ? "..." : ""}`, attachment: fs.createReadStream(tmpFile) },
-      threadID,
-      () => fs.remove(tmpFile).catch(() => {}),
-      messageID
-    );
-
-  } catch (e) {
-    // TTS fail হলে text পাঠাও
-    global.log?.warn(`Voice: ${e.message}`);
-    api.sendMessage(
-      `🎙️ *ভয়েস মেসেজ*\n\n${text}\n\n_(ভয়েস পাঠাতে সমস্যা হয়েছে, text এ দিলাম 🥺)_`,
-      threadID,
-      messageID
-    );
-  }
-                                  }
+           
