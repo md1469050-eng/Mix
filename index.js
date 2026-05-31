@@ -230,6 +230,10 @@ function loadCommands() {
 
       if (cmd.handleEvent)  global.client.eventRegistered.push(cmd.config.name);
       if (cmd.handleReply)  { /* registered per-message, not at load time */ }
+      // No-prefix commands (AI triggers without prefix)
+      if (cmd.config?.noPrefix === true || cmd.config?.name === 'ai')
+        if (!global.client.eventRegistered.includes(cmd.config.name))
+          global.client.eventRegistered.push(cmd.config.name);
 
       // Universal cross-framework wrapper
       cmd._wrapped = buildUniversalWrapper(cmd);
@@ -302,7 +306,8 @@ function buildUniversalWrapper(cmd) {
 
     // ── SANDBOX EXECUTION ──
     try {
-      const runner = cmd.run || cmd.onCall;
+      const runner = cmd.onStart || cmd.run || cmd.onCall;
+      if (!runner) throw new Error('No runner function found');
       await runner(unifiedCtx);
     } catch (runErr) {
       const errMsg = `⚠️ কমান্ড [${cmd.config?.name}] ত্রুটি:\n${runErr.message}`;
@@ -385,7 +390,7 @@ function hotLoadFile(filePath, filename) {
   try {
     delete require.cache[require.resolve(filePath)];
     const cmd = require(filePath);
-    if (!cmd?.config?.name || (!cmd.run && !cmd.onCall)) return;
+    if (!cmd?.config?.name || (!cmd.run && !cmd.onCall && !cmd.onStart)) return;
 
     // Install missing deps
     if (cmd.config.dependencies) {
