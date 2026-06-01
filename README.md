@@ -53,10 +53,7 @@ jobs:
 
       - name: Install npm packages
         run: |
-          npm install --legacy-peer-deps --no-audit || true
-          node -e "require('fca-unofficial')" 2>/dev/null || \
-            npm install fca-unofficial@latest --legacy-peer-deps --no-audit || \
-            npm install github:VinhBot/fca-unofficial --legacy-peer-deps || true
+          npm install --legacy-peer-deps
           npm rebuild canvas --update-binary 2>/dev/null || true
 
       - name: Run Bot
@@ -65,3 +62,5 @@ jobs:
         env:
           NODE_ENV: production
           TZ:       Asia/Dhaka
+
+          
