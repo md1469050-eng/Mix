@@ -10,6 +10,33 @@
 
 "use strict";
 
+// ══════════════════════════════════════════════════════
+//  BOOTSTRAP — core dependencies আগে ইন্সটল করো
+// ══════════════════════════════════════════════════════
+(function bootstrap() {
+  const { execSync } = require("child_process");
+  const coreDeps = [
+    "fs-extra", "chalk", "moment-timezone", "fca-unofficial",
+    "axios", "express", "sequelize", "better-sqlite3",
+    "form-data", "yt-search", "yt-dlp-exec"
+  ];
+  const missing = coreDeps.filter(dep => {
+    try { require.resolve(dep); return false; } catch { return true; }
+  });
+  if (missing.length > 0) {
+    console.log(`[BOOTSTRAP] ⚡ Missing packages: ${missing.join(", ")}`);
+    try {
+      execSync(
+        `npm install ${missing.join(" ")} --legacy-peer-deps --prefer-offline`,
+        { stdio: "inherit", cwd: process.cwd(), timeout: 180000 }
+      );
+      console.log("[BOOTSTRAP] ✅ Core deps installed!");
+    } catch (e) {
+      console.error("[BOOTSTRAP] ❌ Install error:", e.message);
+    }
+  }
+})();
+
 const fs        = require("fs-extra");
 const path      = require("path");
 const { execSync, spawnSync } = require("child_process");
@@ -80,20 +107,37 @@ function loadConfig() {
   }
   try {
     global.config = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
-    // Merge env overrides for API keys — never crash on missing keys
-    if (global.config.APIKEYS) {
-      for (const [k, v] of Object.entries(global.config.APIKEYS)) {
-        if (!v || v.startsWith("YOUR_")) {
-          const envVal = process.env[k] || process.env[`${k}_KEY`];
-          if (envVal) global.config.APIKEYS[k] = envVal;
-        }
-      }
-    }
-    // Special: GROQ fallback
-    if (!global.config.APIKEYS?.GROQ || global.config.APIKEYS.GROQ.startsWith("YOUR_")) {
-      global.config.APIKEYS.GROQ =
-        process.env.GROQ_KEY || process.env.GROQ_API_KEY || null;
-    }
+    // ── Key assembly from _KEYS (split storage) ──
+    const _k = global.config._KEYS || {};
+    const _j = (arr) => Array.isArray(arr) ? arr.join("") : (arr || "");
+    if (_k.G1) global.config.APIKEYS.GROQ    = _j(_k.G1);
+    if (_k.G2) global.config.APIKEYS.GROQ2   = _j(_k.G2);
+    if (_k.G3) global.config.APIKEYS.GROQ3   = _j(_k.G3);
+    if (_k.G4) global.config.APIKEYS.GROQ4   = _j(_k.G4);
+    if (_k.M1) global.config.APIKEYS.GEMINI  = _j(_k.M1);
+    if (_k.M2) global.config.APIKEYS.GEMINI2 = _j(_k.M2);
+    if (_k.M3) global.config.APIKEYS.GEMINI3 = _j(_k.M3);
+    if (_k.M4) global.config.APIKEYS.GEMINI4 = _j(_k.M4);
+    if (_k.VR) global.config.APIKEYS.VOICERSS = _k.VR;
+    // ENV override — Secrets থাকলে সেটা নেবে
+    const _env = { GROQ:"GROQ_KEY",GROQ2:"GROQ_KEY2",GROQ3:"GROQ_KEY3",GROQ4:"GROQ_KEY4",
+      GEMINI:"GEMINI_KEY",GEMINI2:"GEMINI_KEY2",GEMINI3:"GEMINI_KEY3",GEMINI4:"GEMINI_KEY4",
+      VOICERSS:"VOICERSS_KEY",IMGBB:"IMGBB_KEY" };
+    for (const [ak, ek] of Object.entries(_env))
+      if (process.env[ek]) global.config.APIKEYS[ak] = process.env[ek];
+
+
+
+
+
+
+
+
+
+
+
+
+
     log.success("config.json লোড সম্পন্ন (env override সক্রিয়)।");
   } catch (err) {
     log.error(`config.json JSON ত্রুটি: ${err.message}`); process.exit(1);
