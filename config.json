@@ -49,28 +49,46 @@
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
   },
 
+  "_KEYS": {
+    "G1": ["gsk_t9fDslYMjR4wpawvwoNw", "WGdyb3FY7dAmIK03Kma2ZZKzb3IC8dlG"],
+    "G2": ["gsk_ZRIZvRU8JPAUtp32jDK9", "WGdyb3FYR0OeFcU1apZkJB2T88P4FkQD"],
+    "G3": ["gsk_FtU5aVmyc0O9oFeG6die", "WGdyb3FYOnSzYs3poPoTDzKNbsJ1cFyV"],
+    "G4": ["gsk_e15N4087xRjZIP1kuqu7", "WGdyb3FY4bdjJDe28sSKzDCvOweyK6vO"],
+    "M1": ["AQ.Ab8RN6IiyNaLXDSzE5t9", "etAeOBImS6IczmAYC_g3v2Ib5Z7E-Q"],
+    "M2": ["AQ.Ab8RN6Ic0ijdf-weAI75", "9DL9ZlRSVKPpB_VLScAVoA4uISvTMA"],
+    "M3": ["AQ.Ab8RN6JGFjy_iYLPQSGn", "cqJ_X8dbL8w_ooLUE8vwDYSRxyJw-w"],
+    "M4": ["AQ.Ab8RN6LWACGzO8Ogkr38", "OmRSm0KhJ5Fub0nD9KgUg89KMtASFg"],
+    "VR": "7434460c8e2f4b39b8a21ac708f21fee"
+  },
+
   "APIKEYS": {
     "GROQ": "",
-    "GEMINI": "YOUR_GEMINI_API_KEY_HERE",
-    "OPENAI": "YOUR_OPENAI_API_KEY_HERE",
-    "OPEN_WEATHER": "YOUR_OPENWEATHER_KEY_HERE",
-    "YOUTUBE": "YOUR_YOUTUBE_API_KEY_HERE",
-    "TENOR": "YOUR_TENOR_KEY_HERE",
-    "REMOVEBG": "YOUR_REMOVEBG_KEY_HERE",
-    "DEEPAI": "YOUR_DEEPAI_KEY_HERE",
-    "HUGGINGFACE": "YOUR_HUGGINGFACE_KEY_HERE",
-    "WOLFRAM": "YOUR_WOLFRAM_KEY_HERE",
-    "RAPIDAPI": "YOUR_RAPIDAPI_KEY_HERE",
-    "BITLY": "YOUR_BITLY_KEY_HERE",
-    "IMGBB": "YOUR_IMGBB_KEY_HERE",
-    "SAUCENAO": "YOUR_SAUCENAO_KEY_HERE",
-    "TIKTOK": "YOUR_TIKTOK_KEY_HERE",
-    "SOUNDCLOUD": "YOUR_SOUNDCLOUD_KEY_HERE",
+    "GROQ2": "",
+    "GROQ3": "",
+    "GROQ4": "",
+    "GEMINI": "",
+    "GEMINI2": "",
+    "GEMINI3": "",
+    "GEMINI4": "",
+    "OPENAI": "",
+    "OPEN_WEATHER": "",
+    "YOUTUBE": "",
+    "TENOR": "",
+    "REMOVEBG": "",
+    "DEEPAI": "",
+    "HUGGINGFACE": "",
+    "WOLFRAM": "",
+    "RAPIDAPI": "",
+    "BITLY": "",
+    "IMGBB": "",
+    "SAUCENAO": "",
+    "TIKTOK": "",
+    "SOUNDCLOUD": "",
     "VOICERSS": "7434460c8e2f4b39b8a21ac708f21fee",
-    "VOICE_FPT": "YOUR_FPT_VOICE_KEY_HERE",
-    "VOICE_ZALO": "YOUR_ZALO_VOICE_KEY_HERE",
-    "NEWSAPI": "YOUR_NEWSAPI_KEY_HERE",
-    "EXCHANGERATE": "YOUR_EXCHANGERATE_KEY_HERE"
+    "VOICE_FPT": "",
+    "VOICE_ZALO": "",
+    "NEWSAPI": "",
+    "EXCHANGERATE": ""
   },
 
   "SYSTEM": {
@@ -173,7 +191,7 @@
       "1": {"name": "🌱 নবীন", "exp": 0},
       "2": {"name": "⭐ সদস্য", "exp": 100},
       "3": {"name": "🌟 অভিজ্ঞ", "exp": 500},
-      "4": {"name": "💫 विशेषज्ञ", "exp": 1500},
+      "4": {"name": "💫 বিশেষজ্ঞ", "exp": 1500},
       "5": {"name": "🏆 চ্যাম্পিয়ন", "exp": 5000},
       "6": {"name": "👑 কিংবদন্তি", "exp": 15000},
       "7": {"name": "🌙 চাঁদের পাহাড়", "exp": 50000}
@@ -223,5 +241,4 @@
     "godEnabled": true,
     "caesarPassword": "BELAL666"
   }
-  }
-    
+}
