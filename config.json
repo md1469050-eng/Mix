@@ -3,10 +3,8 @@
   "VERSION": "6.6.6",
   "AUTHOR": "Belal YT",
   "DESCRIPTION": "2026 সালের সর্বোচ্চ শক্তিশালী Messenger Chatbot",
-
   "PREFIX": "/",
   "LANGUAGE": "bn",
-
   "MASTER": {
     "name": "Belal YT — চাঁদের পাহাড়",
     "facebook": "https://www.facebook.com/mahi.gaming.165",
@@ -16,24 +14,19 @@
     "phone2": "01312893012",
     "signature": "\n┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়🪬❈┉┄"
   },
-
   "ADMINBOT": [
     "61577502464880",
     "100056725134303"
   ],
-
   "NDH": [
     "61577502464880"
   ],
-
   "APPSTATEPATH": "appstate.json",
-
   "DATABASE": {
     "sqlite": {
       "storage": "includes/data.sqlite"
     }
   },
-
   "FCAOption": {
     "selfListen": false,
     "listenEvents": true,
@@ -48,19 +41,41 @@
     "emitReady": false,
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
   },
-
   "_KEYS": {
-    "G1": ["gsk_t9fDslYMjR4wpawvwoNw", "WGdyb3FY7dAmIK03Kma2ZZKzb3IC8dlG"],
-    "G2": ["gsk_ZRIZvRU8JPAUtp32jDK9", "WGdyb3FYR0OeFcU1apZkJB2T88P4FkQD"],
-    "G3": ["gsk_FtU5aVmyc0O9oFeG6die", "WGdyb3FYOnSzYs3poPoTDzKNbsJ1cFyV"],
-    "G4": ["gsk_e15N4087xRjZIP1kuqu7", "WGdyb3FY4bdjJDe28sSKzDCvOweyK6vO"],
-    "M1": ["AQ.Ab8RN6IiyNaLXDSzE5t9", "etAeOBImS6IczmAYC_g3v2Ib5Z7E-Q"],
-    "M2": ["AQ.Ab8RN6Ic0ijdf-weAI75", "9DL9ZlRSVKPpB_VLScAVoA4uISvTMA"],
-    "M3": ["AQ.Ab8RN6JGFjy_iYLPQSGn", "cqJ_X8dbL8w_ooLUE8vwDYSRxyJw-w"],
-    "M4": ["AQ.Ab8RN6LWACGzO8Ogkr38", "OmRSm0KhJ5Fub0nD9KgUg89KMtASFg"],
+    "G1": [
+      "gsk_t9fDslYMjR4wpawvwoNw",
+      "WGdyb3FY7dAmIK03Kma2ZZKzb3IC8dlG"
+    ],
+    "G2": [
+      "gsk_ZRIZvRU8JPAUtp32jDK9",
+      "WGdyb3FYR0OeFcU1apZkJB2T88P4FkQD"
+    ],
+    "G3": [
+      "gsk_FtU5aVmyc0O9oFeG6die",
+      "WGdyb3FYOnSzYs3poPoTDzKNbsJ1cFyV"
+    ],
+    "G4": [
+      "gsk_e15N4087xRjZIP1kuqu7",
+      "WGdyb3FY4bdjJDe28sSKzDCvOweyK6vO"
+    ],
+    "M1": [
+      "AQ.Ab8RN6IiyNaLXDSzE5t9",
+      "etAeOBImS6IczmAYC_g3v2Ib5Z7E-Q"
+    ],
+    "M2": [
+      "AQ.Ab8RN6Ic0ijdf-weAI75",
+      "9DL9ZlRSVKPpB_VLScAVoA4uISvTMA"
+    ],
+    "M3": [
+      "AQ.Ab8RN6JGFjy_iYLPQSGn",
+      "cqJ_X8dbL8w_ooLUE8vwDYSRxyJw-w"
+    ],
+    "M4": [
+      "AQ.Ab8RN6LWACGzO8Ogkr38",
+      "OmRSm0KhJ5Fub0nD9KgUg89KMtASFg"
+    ],
     "VR": "7434460c8e2f4b39b8a21ac708f21fee"
   },
-
   "APIKEYS": {
     "GROQ": "",
     "GROQ2": "",
@@ -90,7 +105,6 @@
     "NEWSAPI": "",
     "EXCHANGERATE": ""
   },
-
   "SYSTEM": {
     "autoRestart": true,
     "restartInterval": 86400,
@@ -105,7 +119,6 @@
     "developerMode": false,
     "showCommandLog": true
   },
-
   "PERFORMANCE": {
     "cacheMessages": true,
     "optimizeEvents": true,
@@ -120,7 +133,6 @@
       "maxPerHour": 500
     }
   },
-
   "ANTI_ABUSE": {
     "blockSpam": true,
     "spamThreshold": 5,
@@ -132,7 +144,6 @@
     "badWordsFilter": true,
     "reportToAdmin": true
   },
-
   "ANTI_BAN": {
     "enabled": true,
     "humanDelay": true,
@@ -142,7 +153,6 @@
     "maxActionsPerHour": 100,
     "pauseOnSuspicion": true
   },
-
   "GROUP_SETTINGS": {
     "allowInbox": true,
     "adminOnly": false,
@@ -155,16 +165,19 @@
     "antiOut": false,
     "antiJoin": false
   },
-
   "BOT_MODES": {
-    "reactUnsend": ["😡", "🤧", "😤", "😠"],
+    "reactUnsend": [
+      "😡",
+      "🤧",
+      "😤",
+      "😠"
+    ],
     "autoReact": true,
     "autoSeen": true,
     "autoReply": true,
     "noPrefix": false,
     "globalPrefix": true
   },
-
   "COOLDOWNS": {
     "default": 3,
     "ai": 5,
@@ -174,7 +187,6 @@
     "game": 5,
     "admin": 0
   },
-
   "ECONOMY": {
     "enabled": true,
     "startBalance": 5000,
@@ -183,44 +195,91 @@
     "bankEnabled": true,
     "shopEnabled": true
   },
-
   "RANK_SYSTEM": {
     "enabled": true,
     "expPerMessage": 1,
     "levels": {
-      "1": {"name": "🌱 নবীন", "exp": 0},
-      "2": {"name": "⭐ সদস্য", "exp": 100},
-      "3": {"name": "🌟 অভিজ্ঞ", "exp": 500},
-      "4": {"name": "💫 বিশেষজ্ঞ", "exp": 1500},
-      "5": {"name": "🏆 চ্যাম্পিয়ন", "exp": 5000},
-      "6": {"name": "👑 কিংবদন্তি", "exp": 15000},
-      "7": {"name": "🌙 চাঁদের পাহাড়", "exp": 50000}
+      "1": {
+        "name": "🌱 নবীন",
+        "exp": 0
+      },
+      "2": {
+        "name": "⭐ সদস্য",
+        "exp": 100
+      },
+      "3": {
+        "name": "🌟 অভিজ্ঞ",
+        "exp": 500
+      },
+      "4": {
+        "name": "💫 বিশেষজ্ঞ",
+        "exp": 1500
+      },
+      "5": {
+        "name": "🏆 চ্যাম্পিয়ন",
+        "exp": 5000
+      },
+      "6": {
+        "name": "👑 কিংবদন্তি",
+        "exp": 15000
+      },
+      "7": {
+        "name": "🌙 চাঁদের পাহাড়",
+        "exp": 50000
+      }
     }
   },
-
   "MODULES": {
-    "ai": {"enabled": true, "model": "groq", "fallback": "gemini"},
-    "music": {"enabled": true, "maxDuration": 600},
-    "video": {"enabled": true, "maxSize": "50mb"},
-    "game": {"enabled": true},
-    "economy": {"enabled": true},
-    "rank": {"enabled": true},
-    "weather": {"enabled": true},
-    "translate": {"enabled": true},
-    "image": {"enabled": true},
-    "admin": {"enabled": true},
-    "antiAbuse": {"enabled": true},
-    "welcome": {"enabled": true},
-    "leave": {"enabled": true}
+    "ai": {
+      "enabled": true,
+      "model": "groq",
+      "fallback": "gemini"
+    },
+    "music": {
+      "enabled": true,
+      "maxDuration": 600
+    },
+    "video": {
+      "enabled": true,
+      "maxSize": "50mb"
+    },
+    "game": {
+      "enabled": true
+    },
+    "economy": {
+      "enabled": true
+    },
+    "rank": {
+      "enabled": true
+    },
+    "weather": {
+      "enabled": true
+    },
+    "translate": {
+      "enabled": true
+    },
+    "image": {
+      "enabled": true
+    },
+    "admin": {
+      "enabled": true
+    },
+    "antiAbuse": {
+      "enabled": true
+    },
+    "welcome": {
+      "enabled": true
+    },
+    "leave": {
+      "enabled": true
+    }
   },
-
   "MENU_SETTINGS": {
     "autoUnsend": true,
     "delayUnsend": 120,
     "showCategories": true,
     "showCooldown": true
   },
-
   "ADMIN_NOTIFY": {
     "sendNoti": true,
     "autoUnsend": true,
@@ -229,16 +288,14 @@
     "notifyOnJoin": true,
     "notifyOnKick": true
   },
-
   "COMMAND_DISABLED": [],
   "EVENT_DISABLED": [],
   "THREAD_BLACKLIST": [],
   "USER_BLACKLIST": [],
-
   "SECURITY": {
     "encryptAppstate": false,
     "logEnabled": true,
     "godEnabled": true,
     "caesarPassword": "BELAL666"
   }
-}
+    }

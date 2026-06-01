@@ -610,7 +610,25 @@ async function startBot(models) {
     log.bot(`বট চলছে — ${moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss")}`);
 
     api.listenMqtt(async (err, event) => {
-      if (err) return log.error(`Listener ত্রুটি: ${err}`);
+      if (err) {
+        const code = err?.error || err?.code || "";
+        const msg  = String(err?.errorSummary || err?.message || err?.error || "");
+
+        // sync_sequence_id null — নতুন/খালি account, ignore করে চলতে থাকো
+        if (msg.includes("sync_sequence_id") || msg.includes("no sync_sequence_id")) {
+          log.warn("⚠️ sync_sequence_id পাওয়া যায়নি — bot account এ যেকোনো group এ কিছু message পাঠাও, তারপর restart করো।");
+          return;
+        }
+
+        log.error(`Listener ত্রুটি: [${code}] ${msg}`);
+        if (code === 1357004 || String(code) === "1357004") {
+          log.warn("════════════════════════════════════════");
+          log.warn("❌ Facebook session expired! appstate নতুন করুন।");
+          log.warn("════════════════════════════════════════");
+          setTimeout(() => process.exit(1), 2000);
+        }
+        return;
+      }
 
       try {
         switch (event.type) {
