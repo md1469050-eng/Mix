@@ -3,43 +3,65 @@
 
 ### <br>   ❖ DEPLOY_WORKFLOWS ❖
 ```
-name: BELAL BOT
+name: BELAL BOTX666
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 */5 * * *'
 
 jobs:
   bot:
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg --fix-missing || true
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg python3 python3-pip build-essential --fix-missing || true
+          sudo pip3 install yt-dlp --break-system-packages 2>/dev/null || true
 
       - name: Inject API keys into config.json
         run: |
           node -e "
-          const fs=require('fs');
-          const c=JSON.parse(fs.readFileSync('config.json','utf-8'));
-          c.APIKEYS.GROQ=process.env.GROQ_KEY||c.APIKEYS.GROQ;
-          fs.writeFileSync('config.json',JSON.stringify(c,null,2));
+          const fs = require('fs');
+          const c = JSON.parse(fs.readFileSync('config.json', 'utf-8'));
+          const k = JSON.parse(fs.readFileSync('keys.json', 'utf-8'));
+          c.APIKEYS.GROQ     = k.GROQ_KEY    || '';
+          c.APIKEYS.GROQ2    = k.GROQ_KEY2   || '';
+          c.APIKEYS.GROQ3    = k.GROQ_KEY3   || '';
+          c.APIKEYS.GROQ4    = k.GROQ_KEY4   || '';
+          c.APIKEYS.GEMINI   = k.GEMINI_KEY  || '';
+          c.APIKEYS.GEMINI2  = k.GEMINI_KEY2 || '';
+          c.APIKEYS.GEMINI3  = k.GEMINI_KEY3 || '';
+          c.APIKEYS.GEMINI4  = k.GEMINI_KEY4 || '';
+          c.APIKEYS.VOICERSS = k.VOICERSS    || '7434460c8e2f4b39b8a21ac708f21fee';
+          fs.writeFileSync('config.json', JSON.stringify(c, null, 2));
+          console.log('API keys injected from keys.json');
           "
-        env:
-          GROQ_KEY: ${{ secrets.GROQ_KEY }}
 
-      - run: npm install --legacy-peer-deps
+      - name: Install npm packages
+        run: |
+          npm install --legacy-peer-deps --no-audit || true
+          node -e "require('fca-unofficial')" 2>/dev/null || \
+            npm install fca-unofficial@latest --legacy-peer-deps --no-audit || \
+            npm install github:VinhBot/fca-unofficial --legacy-peer-deps || true
+          npm rebuild canvas --update-binary 2>/dev/null || true
 
       - name: Run Bot
         run: node index.js
         timeout-minutes: 350
         env:
           NODE_ENV: production
-          TZ: Asia/Dhaka
-          GROQ_KEY: ${{ secrets.GROQ_KEY }}
+          TZ:       Asia/Dhaka
