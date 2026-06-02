@@ -605,6 +605,7 @@ async function startBot(models) {
     const handleCommandFn  = require("./includes/handle/handleCommand")(ctx);
     const handleReplyFn    = require("./includes/handle/handleReply")(ctx);
     const handleEventFn    = require("./includes/handle/handleEvent")(ctx);
+    const handleReactionFn = require("./includes/handle/handleReaction")(ctx);
 
     log.bot(`✅ ${global.client.commands.size} কমান্ড | ${global.client.events.size} ইভেন্ট সক্রিয়`);
     log.bot(`বট চলছে — ${moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss")}`);
@@ -634,6 +635,17 @@ async function startBot(models) {
         switch (event.type) {
 
           case "message_reply":
+            // মেসেজ cache — reaction এ sender বের করতে কাজে লাগবে
+            if (!global.client.messageCache) global.client.messageCache = new Map();
+            global.client.messageCache.set(event.messageID, {
+              senderID: event.senderID,
+              threadID: event.threadID,
+              timestamp: Date.now()
+            });
+            if (global.client.messageCache.size > 500) {
+              const firstKey = global.client.messageCache.keys().next().value;
+              global.client.messageCache.delete(firstKey);
+            }
             // handleReply.js এ পাঠাও — name ও commandName দুটোই সাপোর্ট করে
             await handleReplyFn({ event });
             // event-based handlers ও চলুক (rank, xp ইত্যাদি)
@@ -641,6 +653,18 @@ async function startBot(models) {
             break;
 
           case "message":
+            // মেসেজ cache — reaction এ sender বের করতে কাজে লাগবে
+            if (!global.client.messageCache) global.client.messageCache = new Map();
+            global.client.messageCache.set(event.messageID, {
+              senderID: event.senderID,
+              threadID: event.threadID,
+              timestamp: Date.now()
+            });
+            // cache সর্বোচ্চ ৫০০ রাখো, পুরনো মুছে ফেলো
+            if (global.client.messageCache.size > 500) {
+              const firstKey = global.client.messageCache.keys().next().value;
+              global.client.messageCache.delete(firstKey);
+            }
             await handleCommandFn({ event });
             handleEventFn({ event });
             break;
@@ -654,6 +678,7 @@ async function startBot(models) {
             break;
 
           case "message_reaction":
+            await handleReactionFn({ event });
             routeHandleReaction(api, event, models);
             break;
 
