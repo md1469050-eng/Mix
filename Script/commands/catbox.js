@@ -1,75 +1,95 @@
-/*
- * catbox.js — Fixed v2.0
- * ✅ utils/index dependency সরানো হয়েছে
- * ✅ inline downloadFile function
- * ✅ cache/ folder auto-create
- */
-const fs       = require("fs-extra");
-const axios    = require("axios");
-const path     = require("path");
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
 const FormData = require("form-data");
+const moment = require("moment-timezone");
 
-module.exports.config = {
-  name: "catbox",
-  version: "2.0.0",
-  hasPermssion: 0,
-  credits: "ULLASH — Fixed by Belal YT",
-  description: "Upload media to Catbox.moe and get direct link",
-  commandCategory: "media",
-  usages: "[reply to image/video/audio]",
-  cooldowns: 5,
-};
+module.exports = {
+  config: {
+    name: "catbox",
+    aliases: ["upload", "link"],
+    version: "2.5.0",
+    author: "BOTX666 🪬",
+    countDown: 5,
+    role: 0,
+    category: "Media",
+    shortDescription: { en: "Upload any media to Catbox and get a URL." },
+    guide: { en: "Reply to an image/video/audio with {pn}" }
+  },
 
-module.exports.run = async ({ api, event }) => {
-  const { threadID, type, messageReply, messageID } = event;
+  onStart: async function ({ api, event }) {
+    const { threadID, messageReply, type, messageID } = event;
 
-  if (type !== "message_reply" || !messageReply?.attachments?.length)
-    return api.sendMessage("❐ একটা ছবি/ভিডিও/অডিওতে reply করে /catbox লেখো।", threadID, messageID);
+    // সময় ও সিগনেচার
+    const bdTime = moment.tz("Asia/Dhaka").format("hh:mm A");
+    const header = "📤 ━━━『 𝐂𝐀𝐓𝐁𝐎𝐗 𝐔𝐏𝐋𝐎𝐀𝐃𝐄𝐑 』━━━ 📤";
+    const sig = `\n━━━━━━━━━━━━━━━━━━━━\n┄┉❈✡️⋆⃝ 𖤍চাঁদের~পাহাড়𖤍 ⋆⃝🪬❈┉┄\n⏰ সময়: ${bdTime}`;
 
-  const cacheDir = path.join(process.cwd(), "tmp");
-  await fs.ensureDir(cacheDir);
-
-  const filePaths = [];
-
-  // Download attachments
-  for (let i = 0; i < messageReply.attachments.length; i++) {
-    const data = messageReply.attachments[i];
-    const ext  = data.type === "photo" ? "jpg"
-               : data.type === "video" ? "mp4"
-               : data.type === "audio" ? "mp3"
-               : data.type === "animated_image" ? "gif" : "dat";
-    const filePath = path.join(cacheDir, `catbox_${Date.now()}_${i}.${ext}`);
-    try {
-      const res = await axios.get(data.url, { responseType: "arraybuffer", timeout: 30000 });
-      await fs.writeFile(filePath, Buffer.from(res.data));
-      filePaths.push(filePath);
-    } catch (e) {
-      api.sendMessage(`❌ ফাইল ডাউনলোড ব্যর্থ: ${e.message?.slice(0,80)}`, threadID, messageID);
+    if (type !== "message_reply" || !messageReply.attachments.length) {
+      return api.sendMessage(`${header}\n\n⚠️ অনুগ্রহ করে কোনো ছবি, ভিডিও বা অডিও ফাইলে রিপ্লাই দিন।${sig}`, threadID, messageID);
     }
-  }
 
-  if (!filePaths.length) return;
+    const file = messageReply.attachments[0];
+    const cacheDir = path.join(process.cwd(), "cache");
+    await fs.ensureDir(cacheDir);
+    const filePath = path.join(cacheDir, `catbox_${Date.now()}_${file.filename || 'media'}`);
 
-  let msg = "📦 Catbox Upload Results:\n";
+    api.setMessageReaction("⏳", messageID, () => {}, true);
+    const loadingMsg = await api.sendMessage("☁️ ফাইলটি ক্লাউডে আপলোড করা হচ্ছে, অপেক্ষা করুন...", threadID);
 
-  for (const filePath of filePaths) {
     try {
-      const form = new FormData();
-      form.append("reqtype", "fileupload");
-      form.append("fileToUpload", fs.createReadStream(filePath));
-
-      const res = await axios.post("https://catbox.moe/user/api.php", form, {
-        headers: form.getHeaders(),
-        timeout: 60000,
+      // ফাইল ডাউনলোড
+      const response = await axios({
+        url: file.url,
+        method: "GET",
+        responseType: "stream"
       });
-      msg += `✅ ${res.data.trim()}\n`;
-    } catch (err) {
-      msg += `❌ Upload failed: ${err.message?.slice(0,60)}\n`;
-    } finally {
-      await fs.remove(filePath).catch(() => {});
+
+      const writer = fs.createWriteStream(filePath);
+      response.data.pipe(writer);
+
+      writer.on("finish", async () => {
+        try {
+          const form = new FormData();
+          form.append("file", fs.createReadStream(filePath));
+
+          // Catbox API তে আপলোড
+          const uploadRes = await axios.post(
+            "https://catbox-api-d07o.onrender.com/upload",
+            form,
+            {
+              headers: { ...form.getHeaders() },
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity
+            }
+          );
+
+          await fs.remove(filePath); // ক্যাশ পরিষ্কার
+
+          if (uploadRes.data && uploadRes.data.url) {
+            await api.unsendMessage(loadingMsg.messageID).catch(() => {});
+            api.setMessageReaction("✅", messageID, () => {}, true);
+            
+            return api.sendMessage(
+              `${header}\n\n✅ 𝐔𝐩𝐥𝐨𝐚𝐝 𝐒𝐮𝐜𝐜𝐞𝐬𝐬!\n🔗 𝐋𝐢𝐧𝐤: ${uploadRes.data.url}${sig}`,
+              threadID,
+              messageID
+            );
+          } else {
+            throw new Error("Upload failed");
+          }
+
+        } catch (err) {
+          if (fs.existsSync(filePath)) await fs.remove(filePath);
+          api.setMessageReaction("❌", messageID, () => {}, true);
+          return api.sendMessage(`❌ আপলোড করতে সমস্যা হয়েছে। সার্ভার ডাউন থাকতে পারে।${sig}`, threadID, messageID);
+        }
+      });
+
+    } catch (e) {
+      api.setMessageReaction("❌", messageID, () => {}, true);
+      return api.sendMessage(`❌ ফাইলটি ডাউনলোড করতে সমস্যা হয়েছে।${sig}`, threadID, messageID);
     }
   }
-
-  return api.sendMessage(msg.trim(), threadID, messageID);
 };
-                  
+       
