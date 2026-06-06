@@ -1,44 +1,25 @@
 {
   "Author": "Belal YT",
-  "version": "7.0.0",
+  "version": "8.0.0",
   "language": "en",
   "DeveloperMode": false,
   "autoCreateDB": true,
-  "autoClean": true,
   "allowInbox": false,
-  "notiGroup": true,
-  "NOTIFICATION": true,
-
-  "BOTNAME": "┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়✿⃝🪬❈┉┄",
-  "PREFIX": "/",
-
-  "reactUnsend": ["😡", "🤧", "😤", "😠"],
-
-  "ADMINBOT": [
-    "আপনার_FACEBOOK_UID_এখানে"
-  ],
-  "NDH": [],
-
   "adminOnly": false,
   "ndhOnly": false,
   "adminPaOnly": false,
 
-  "APPSTATEPATH": "appstate.json",
+  "BOTNAME": "┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়✿⃝🪬❈┉┄",
+  "PREFIX": "/",
 
-  "DATABASE": {
-    "sqlite": { "storage": "data.sqlite" }
-  },
+  "ADMINBOT": ["আপনার_FACEBOOK_UID"],
+  "NDH": [],
+
+  "APPSTATEPATH": "appstate.json",
+  "DATABASE": { "sqlite": { "storage": "data.sqlite" } },
 
   "commandDisabled": [],
   "eventDisabled": [],
-
-  "System": {
-    "autoRestart": true,
-    "restartInterval": 86400,
-    "errorLog": true,
-    "saveCrashLogs": true,
-    "maxMemoryLimit": "1024mb"
-  },
 
   "FCAOption": {
     "selfListen": false,
@@ -51,51 +32,34 @@
     "autoReconnect": true,
     "logRecordSize": 100,
     "online": false,
-    "emitReady": false,
-    "userAgent": "Mozilla/5.0 (Linux; Android 16; SM-A356E Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    "userAgent": "Mozilla/5.0 (Linux; Android 16; SM-A356E) AppleWebKit/537.36 Chrome/141 Safari/537.36"
+  },
+
+  "System": {
+    "autoRestart": true,
+    "restartInterval": 86400,
+    "saveCrashLogs": true
   },
 
   "Modules": {
-    "daily":     { "cooldownTime": 43200000, "rewardCoin": 1000000000 },
-    "work":      { "cooldownTime": 1200000 },
-    "cave":      { "cooldownTime": 2000000 },
-    "cavevip":   { "cooldownTime": 1200000 },
-    "lixi":      { "cooldownTime": 1100000 },
-    "anime":     { "cooldownTime": 1200000 },
-    "fish":      { "cooldownTime": 1000000 },
-    "job":       { "cooldownTime": 5000 },
-    "diemdanh":  { "cooldownTime": 3000000 },
-    "checktt":   { "maxColumn": 300 },
-    "loto":      { "maxPlayers": 10, "getDelay": 8 }
+    "daily":   { "cooldownTime": 43200000, "rewardCoin": 1000000000 },
+    "work":    { "cooldownTime": 1200000 },
+    "fish":    { "cooldownTime": 1000000 },
+    "loto":    { "maxPlayers": 10 }
   },
 
   "MenuSettings": {
-    "help":    { "autoUnsend": true, "delayUnsend": 120 },
-    "help2":   { "autoUnsend": true, "delayUnsend": 300 },
-    "help3":   { "autoUnsend": true, "delayUnsend": 300 },
-    "helpall": { "autoUnsend": true, "delayUnsend": 20 },
-    "menu":    { "autoUnsend": true, "delayUnsend": 55 },
-    "rankup":  { "autoUnsend": true, "unsendMessageAfter": 10 }
+    "help":  { "autoUnsend": true, "delayUnsend": 120 },
+    "menu":  { "autoUnsend": true, "delayUnsend": 55 }
   },
 
   "APIKEYS": {
     "TENOR":        "73YIAOY3ACT1",
     "WOLFRAM":      "T8J8YV-H265UQ762K",
-    "SAUCENAO":     "29be078b8f5239a1202742869f92c25955bdcab3",
-    "BITLY":        "150ef1bc3af86500796d645c86f56766e4802566",
-    "SOUNDCLOUD":   "M4TSyS6eV0AcMynXkA3qQASGcOFQTWub",
     "OPEN_WEATHER": "c4ef85b93982d6627681b056e24bd438",
     "TIKTOK":       "mzkFree_XNPP4LYOG9H8VY83GHG",
-    "TIKVD":        "mzkFree_X0IFR3FV0P97U4VL83F",
-    "VOICE_FPT":    "MhYPX3ksxwdqLC63LiAR4r47sOrkSdhj",
     "YOUTUBE_MAIN": "AIzaSyBNqRSYmQ9D1WWIa186k8nSvo5mr2Rvk5M",
-    "GROQ":  "",
-    "GEMINI": ""
-  },
-
-  "Security": {
-    "caesar": { "caeserPassword": "123456" },
-    "log":    { "enable": true },
-    "god":    { "enable": true }
+    "GROQ":         "",
+    "GEMINI":       ""
   }
 }
