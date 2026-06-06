@@ -1,7 +1,7 @@
 "use strict";
 /*
 ╔═══════════════════════════════════════════════════════════════════╗
-║     🤖 BELAL BOTX666 — handleCommand.js v8.0 (2026 ULTIMATE)    ║
+║     🤖 BELAL BOTX666 — handleCommand.js v8.1 (noprefix fix)     ║
 ╚═══════════════════════════════════════════════════════════════════╝
 */
 module.exports = function ({ api, models, Users, Threads, Currencies }) {
@@ -13,9 +13,14 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
 
   return async function ({ event }) {
     const dateNow = Date.now();
-    const time    = moment.tz("Asia/Dhaka").format("HH:mm:ss DD/MM/YYYY");
 
-    const { allowInbox, PREFIX, ADMINBOT = [], NDH = [], DeveloperMode } = global.config || {};
+    // ✅ FIX: destructure করা যাবে না — live read করতে হবে
+    // global.config.PREFIX যেকোনো সময় prefix.js বদলাতে পারে
+    const ADMINBOT       = global.config?.ADMINBOT || [];
+    const NDH            = global.config?.NDH || [];
+    const allowInbox     = global.config?.allowInbox;
+    const DeveloperMode  = global.config?.DeveloperMode;
+
     const { userBanned, threadBanned, threadInfo, threadData, commandBanned } = global.data || {};
     const { commands, cooldowns } = global.client || {};
 
@@ -27,15 +32,17 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
     const botID = String(global.config?.botID || "");
     if (senderID === botID) return;
 
-    // ── Per-thread PREFIX ─────────────────────────────────────────
+    // ✅ FIX: প্রতিবার live থেকে PREFIX পড়ো
     const threadSetting   = (threadData && threadData.get(threadID)) || {};
     const effectivePrefix = threadSetting.hasOwnProperty("PREFIX")
       ? threadSetting.PREFIX
-      : (PREFIX ?? "/");
+      : (global.config?.PREFIX ?? "/");
 
-    // ── noPrefix mode ─────────────────────────────────────────────
-    const isNoPrefix = effectivePrefix === "" || effectivePrefix === null
-      || global.GoatBot?.config?.isPrefix === false;
+    // ✅ FIX: noprefix সঠিকভাবে check করো
+    // prefix.js "no prefix" দিলে global.config.PREFIX = "" হয়
+    const isNoPrefix = effectivePrefix === ""
+      || effectivePrefix === null
+      || effectivePrefix === undefined;
 
     if (!isNoPrefix) {
       const rx = new RegExp(`^(<@!?${escapeRegex(senderID)}>|${escapeRegex(effectivePrefix)})\\s*`);
@@ -45,20 +52,11 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
     // ── Mode guards ───────────────────────────────────────────────
     const cfg = global.config || {};
     if (!global.data?.allThreadID?.includes(threadID) && !ADMINBOT.includes(senderID) && cfg.adminPaOnly == true)
-      return api.sendMessage(
-        "🔒 MODE » এই বট শুধুমাত্র admin inbox এ ব্যবহার করা যাবে।",
-        threadID, messageID
-      );
+      return api.sendMessage("🔒 MODE » এই বট শুধুমাত্র admin inbox এ ব্যবহার করা যাবে।", threadID, messageID);
     if (!ADMINBOT.includes(senderID) && cfg.adminOnly == true)
-      return api.sendMessage(
-        "🔒 MODE » এই বট এখন শুধুমাত্র admin ব্যবহার করতে পারবে।",
-        threadID, messageID
-      );
+      return api.sendMessage("🔒 MODE » এই বট এখন শুধুমাত্র admin ব্যবহার করতে পারবে।", threadID, messageID);
     if (!NDH.includes(senderID) && !ADMINBOT.includes(senderID) && cfg.ndhOnly == true)
-      return api.sendMessage(
-        "🔒 MODE » এই বট এখন শুধুমাত্র bot support ব্যবহার করতে পারবে।",
-        threadID, messageID
-      );
+      return api.sendMessage("🔒 MODE » এই বট এখন শুধুমাত্র bot support ব্যবহার করতে পারবে।", threadID, messageID);
 
     // ── Adminbox ──────────────────────────────────────────────────
     try {
@@ -72,10 +70,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
           !ADMINBOT.includes(senderID) &&
           !isGroupAdmin &&
           event.isGroup == true
-        ) return api.sendMessage(
-          "🔒 MODE » এই গ্রুপে শুধুমাত্র group admin বট ব্যবহার করতে পারবে।",
-          threadID, messageID
-        );
+        ) return api.sendMessage("🔒 MODE » এই গ্রুপে শুধুমাত্র group admin বট ব্যবহার করতে পারবে।", threadID, messageID);
       }
     } catch {}
 
@@ -87,10 +82,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
         return api.sendMessage(
           `🚫 তুমি এই বট ব্যবহার করতে পারবে না!\n📝 কারণ: ${reason}\n📅 তারিখ: ${dateAdded}`,
           threadID,
-          async (err, info) => {
-            await new Promise(r => setTimeout(r, 5000));
-            api.unsendMessage(info?.messageID).catch(() => {});
-          },
+          async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); },
           messageID
         );
       }
@@ -99,10 +91,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
         return api.sendMessage(
           `🚫 এই গ্রুপে বট ব্যবহার নিষিদ্ধ করা হয়েছে!\n📝 কারণ: ${reason}\n📅 তারিখ: ${dateAdded}`,
           threadID,
-          async (err, info) => {
-            await new Promise(r => setTimeout(r, 5000));
-            api.unsendMessage(info?.messageID).catch(() => {});
-          },
+          async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); },
           messageID
         );
       }
@@ -139,7 +128,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
             command = commands.get(checker.bestMatch.target);
           } else {
             return api.sendMessage(
-              `❓ "${commandName}" নামে কোনো কমান্ড নেই!\n💡 কাছাকাছি কমান্ড: ${effectivePrefix}${checker.bestMatch.target}\n📋 সব কমান্ড দেখতে: ${effectivePrefix}menu`,
+              `❓ "${commandName}" নামে কোনো কমান্ড নেই!\n💡 কাছাকাছি: ${effectivePrefix}${checker.bestMatch.target}\n📋 সব কমান্ড: ${effectivePrefix}menu`,
               threadID
             );
           }
@@ -203,10 +192,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
     const cdSecs     = command.config.cooldowns ?? command.config.countDown ?? command.config.coolDown ?? 1;
     if (timestamps.has(senderID) && dateNow < timestamps.get(senderID) + cdSecs * 1000) {
       const left = ((timestamps.get(senderID) + cdSecs * 1000 - dateNow) / 1000).toFixed(1);
-      return api.sendMessage(
-        `⏳ একটু অপেক্ষা করো!\n🕐 ${left} সেকেন্ড পরে আবার ব্যবহার করো।`,
-        threadID, messageID
-      );
+      return api.sendMessage(`⏳ একটু অপেক্ষা করো!\n🕐 ${left} সেকেন্ড পরে আবার চেষ্টা করো।`, threadID, messageID);
     }
 
     // ── per-command getText ───────────────────────────────────────
@@ -263,7 +249,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
       if (DeveloperMode)
         global.log?.info?.(`[DEV] ${commandName} | ${senderID} | ${Date.now() - dateNow}ms`);
     } catch (e) {
-      global.log?.error?.(`❌ [${command.config.name}] কমান্ড ত্রুটি: ${e.message}`);
+      global.log?.error?.(`❌ [${command.config.name}] ত্রুটি: ${e.message}`);
       api.sendMessage(
         `❌ "${commandName}" কমান্ড চালাতে সমস্যা হয়েছে!\n📝 ত্রুটি: ${e.message?.slice(0, 150)}\n🔧 Admin কে জানাও।`,
         threadID
