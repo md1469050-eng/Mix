@@ -1,116 +1,58 @@
-axios = require('axios');
-const fs = require('fs-extra'); 
+const axios = require('axios');
+const fs = require('fs-extra');
 const path = require('path');
-const stream = require('stream');
-const { promisify } = require('util');
 
-const pipeline = promisify(stream.pipeline);
-const API_ENDPOINT = "https://free-goat-api.onrender.com/4k"; 
-const CACHE_DIR = path.join(__dirname, 'cache');
-
-function extractImageUrl(args, event) {
-    let imageUrl = args.find(arg => arg.startsWith('http'));
-
-    if (!imageUrl && event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
-        const imageAttachment = event.messageReply.attachments.find(att => att.type === 'photo' || att.type === 'image');
-        if (imageAttachment && imageAttachment.url) {
-            imageUrl = imageAttachment.url;
-        }
-    }
-    return imageUrl;
-}
-
-module.exports = {
-  config: {
+module.exports.config = {
     name: "4k",
-    aliases: ["upscale", "hd", "enhance"],
-    version: "1.0",
-    author: "NeoKEX",
-    countDown: 15,
-    role: 0,
-    longDescription: "Upscales an image to higher resolution (simulated 4K) using AI.",
-    category: "image",
-    guide: {
-      en: 
-        "{pn} <image_url> OR reply to an image.\n\n" +
-        "• Example: {pn} https://example.com/lowres.jpg"
-    }
-  },
+    version: "2.5.0",
+    credits: "Master Belal",
+    description: "ছবির ব্যাকগ্রাউন্ড রিমুভ, কালার গ্রেডিং এবং ৪কে এনহ্যান্সমেন্ট",
+    usages: "[ছবিতে রিপ্লাই দিন]",
+    commandCategory: "AI Tools",
+    cooldowns: 2
+};
 
-  onStart: async function ({ args, message, event }) {
+const API_ENDPOINT = "https://free-goat-api.onrender.com/4k";
+
+module.exports.run = async function ({ api, event }) {
+    const { threadID, messageID, messageReply } = event;
+
+    let imageUrl;
+    if (messageReply && messageReply.attachments && messageReply.attachments.length > 0) {
+        imageUrl = messageReply.attachments[0].url;
+    } else {
+        return api.sendMessage("⚠️ দয়া করে একটি ছবিতে রিপ্লাই দিয়ে /4k লিখুন।", threadID, messageID);
+    }
+
+    api.setMessageReaction("📸", messageID, () => {}, true);
     
-    // Get the image URL from arguments or a replied message
-    const imageUrl = extractImageUrl(args, event);
-
-    if (!imageUrl) {
-      return message.reply("❌ Please provide an image URL or reply to an image to upscale.");
-    }
-
-    if (!fs.existsSync(CACHE_DIR)) {
-        fs.mkdirSync(CACHE_DIR, { recursive: true });
-    }
-
-    message.reaction("⏳", event.messageID);
-    let tempFilePath; 
+    const tempPath = path.join(__dirname, `/cache/4k_ultra_${Date.now()}.png`);
 
     try {
-      // 1. Construct the API URL
-      const fullApiUrl = `${API_ENDPOINT}?url=${encodeURIComponent(imageUrl)}`;
-      
-      // 2. Call the API to get the upscaled image URL
-      const apiResponse = await axios.get(fullApiUrl, { timeout: 45000 });
-      const data = apiResponse.data;
+        // এনহ্যান্সমেন্ট এবং প্রসেসিং এর জন্য এপিআই কল
+        const res = await axios.get(`${API_ENDPOINT}?url=${encodeURIComponent(imageUrl)}`);
+        const processedUrl = res.data.image;
 
-      if (!data.image) {
-        throw new Error("API returned success but missing final image URL.");
-      }
+        if (!processedUrl) throw new Error("প্রসেসিং ব্যর্থ হয়েছে!");
 
-      const upscaledImageUrl = data.image;
+        const imageRes = await axios.get(processedUrl, { responseType: 'arraybuffer' });
+        fs.writeFileSync(tempPath, Buffer.from(imageRes.data, 'utf-8'));
 
-      // 3. Download the upscaled image stream
-      const imageDownloadResponse = await axios.get(upscaledImageUrl, {
-          responseType: 'stream',
-          timeout: 60000,
-      });
-      
-      // 4. Save the stream to a temporary file
-      const fileHash = Date.now() + Math.random().toString(36).substring(2, 8);
-      tempFilePath = path.join(CACHE_DIR, `upscale_4k_${fileHash}.jpg`);
-      
-      await pipeline(imageDownloadResponse.data, fs.createWriteStream(tempFilePath));
+        api.setMessageReaction("✨", messageID, () => {}, true);
 
-      message.reaction("✅", event.messageID);
-      
-      // 5. Reply with the final image
-      await message.reply({
-        body: `Image successfully upscaled to 4K!`,
-        attachment: fs.createReadStream(tempFilePath)
-      });
+        // একদম আলাদা এবং ক্লিন ডিজাইন
+        const msg = {
+            body: `🌟 𝗨𝗟𝗧𝗥𝗔 𝟰𝗞 𝗘𝗡𝗛𝗔𝗡𝗖𝗘𝗗 🌟\n━━━━━━━━━━━━━━━━━━\n🎨 𝗘𝗳𝗳𝗲𝗰𝘁: Color Grading + HD\n🛠 𝗣𝗿𝗼𝗰𝗲𝘀𝘀: AI Deep Learning\n🌈 𝗕𝗮𝗰𝗸𝗴𝗿𝗼𝘂𝗻𝗱: Optimized\n━━━━━━━━━━━━━━━━━━`,
+            attachment: fs.createReadStream(tempPath)
+        };
 
-    } catch (error) {
-      message.reaction("❌", event.messageID);
-      
-      let errorMessage = "❌ Failed to upscale image. An error occurred.";
-      if (error.response) {
-         if (error.response.status === 400) {
-             errorMessage = `❌ Error 400: The provided URL might be invalid or the image is too small/large.`;
-         } else {
-             errorMessage = `❌ HTTP Error ${error.response.status}. The API may be unavailable.`;
-         }
-      } else if (error.message.includes('timeout')) {
-         errorMessage = `❌ Request timed out (API response too slow).`;
-      } else if (error.message) {
-         errorMessage = `❌ ${error.message}`;
-      }
+        return api.sendMessage(msg, threadID, () => {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        }, messageID);
 
-      console.error("4K Upscale Command Error:", error);
-      message.reply(errorMessage);
-
-    } finally {
-      // Clean up the temporary file
-      if (tempFilePath && fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-      }
+    } catch (err) {
+        api.setMessageReaction("❌", messageID, () => {}, true);
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        return api.sendMessage("🚫 সার্ভার ত্রুটি! ছবি প্রসেস করা সম্ভব হচ্ছে না API Stor Brlal YT।", threadID, messageID);
     }
-  }
 };
