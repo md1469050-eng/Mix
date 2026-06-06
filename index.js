@@ -57,9 +57,9 @@ console.log  = (...a) => { const m = a.join(" "); if (_badPhrases.some(p => m.in
   ];
   const miss = core.filter(p => { try { require.resolve(p); return false; } catch { return true; } });
   if (miss.length) {
-    console.info("[BOOTSTRAP] Installing:", miss.join(", "));
+    console.info("  📦 [ইন্সটল] প্রয়োজনীয় package নেই, ইন্সটল হচ্ছে:", miss.join(", "));
     try { execSync(`npm install ${miss.join(" ")} --legacy-peer-deps --prefer-offline`, { stdio: "inherit", timeout: 300000 }); }
-    catch (e) { console.error("[BOOTSTRAP]", e.message); }
+    catch (e) { console.error("  ❌ [ইন্সটল ব্যর্থ]", e.message); }
   }
 })();
 
@@ -77,19 +77,72 @@ const ROOT      = process.cwd();
 const BOT_START = Date.now();
 
 // ═══════════════════════════════════════════════════
-// STEP 3: Logger
+// STEP 3: Banner + Logger
 // ═══════════════════════════════════════════════════
-const ts = () => moment().tz("Asia/Dhaka").format("HH:mm:ss");
+const ts = () => moment().tz("Asia/Dhaka").format("HH:mm:ss DD/MM/YYYY");
+
+function printBanner() {
+  const b = chalk.bold;
+  const W = chalk.white;
+  const G = chalk.hex("#00FF88");   // সবুজ
+  const C = chalk.hex("#00CFFF");   // নীল
+  const Y = chalk.hex("#FFD700");   // সোনালী
+  const P = chalk.hex("#FF69B4");   // গোলাপী
+  const R = chalk.hex("#FF4444");   // লাল
+  const line = chalk.hex("#444444");
+
+  _origLog("");
+  _origLog(line("  ╔══════════════════════════════════════════════════════════╗"));
+  _origLog(line("  ║") + "                                                          " + line("║"));
+  _origLog(line("  ║") + b(Y("    ██████╗ ███████╗██╗      █████╗ ██╗                    ")) + line("║"));
+  _origLog(line("  ║") + b(Y("    ██╔══██╗██╔════╝██║     ██╔══██╗██║                    ")) + line("║"));
+  _origLog(line("  ║") + b(Y("    ██████╔╝█████╗  ██║     ███████║██║                    ")) + line("║"));
+  _origLog(line("  ║") + b(Y("    ██╔══██╗██╔══╝  ██║     ██╔══██║██║                    ")) + line("║"));
+  _origLog(line("  ║") + b(Y("    ██████╔╝███████╗███████╗██║  ██║███████╗               ")) + line("║"));
+  _origLog(line("  ║") + b(Y("    ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝               ")) + line("║"));
+  _origLog(line("  ║") + "                                                          " + line("║"));
+  _origLog(line("  ║") + "  " + b(P("  ┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়✿⃝🪬❈┉┄                        ")) + line("║"));
+  _origLog(line("  ║") + "  " + b(C("  🤖 BOTX666 MAX  ")) + W("│") + b(G(" Master: Belal YT       ")) + W("│") + b(Y(" v8.0 ")) + "      " + line("║"));
+  _origLog(line("  ║") + "                                                          " + line("║"));
+  _origLog(line("  ╠══════════════════════════════════════════════════════════╣"));
+  _origLog(line("  ║") + " " + G("  ✅ handleCommand    ") + W("│") + G(" ✅ handleEvent       ") + W("│") + G(" ✅ handleReply  ") + "   " + line("║"));
+  _origLog(line("  ║") + " " + G("  ✅ handleReaction   ") + W("│") + G(" ✅ handleSchedule    ") + W("│") + G(" ✅ HotReload    ") + "   " + line("║"));
+  _origLog(line("  ║") + " " + G("  ✅ noPrefix         ") + W("│") + G(" ✅ string-similarity ") + W("│") + G(" ✅ fastStream   ") + "   " + line("║"));
+  _origLog(line("  ║") + " " + G("  ✅ AutoDB           ") + W("│") + G(" ✅ Permission 0/1/2/3") + W("│") + G(" ✅ NSFW Guard   ") + "   " + line("║"));
+  _origLog(line("  ╠══════════════════════════════════════════════════════════╣"));
+  _origLog(line("  ║") + b(R("  ⚠️  বট চালু হচ্ছে... দয়া করে অপেক্ষা করুন              ")) + line("║"));
+  _origLog(line("  ║") + "  " + C(`  🕐 সময়: ${moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss")}`) + "                           " + line("║"));
+  _origLog(line("  ╚══════════════════════════════════════════════════════════╝"));
+  _origLog("");
+}
+
 const log = {
-  info:    m => _origLog(chalk.cyan   (`[তথ্য]    ${ts()} ➤  ${m}`)),
-  success: m => _origLog(chalk.green  (`[সফল]     ${ts()} ✅ ${m}`)),
-  warn:    m => _origLog(chalk.yellow (`[সতর্ক]   ${ts()} ⚠️  ${m}`)),
-  error:   m => _origLog(chalk.red    (`[ত্রুটি]  ${ts()} ❌ ${m}`)),
-  bot:     m => _origLog(chalk.magenta(`[বট]      ${ts()} 🤖 ${m}`)),
-  cmd:     m => _origLog(chalk.blue   (`[কমান্ড]  ${ts()} ⚡ ${m}`)),
-  event:   m => _origLog(chalk.gray   (`[ইভেন্ট]  ${ts()} 📡 ${m}`)),
-  hot:     m => _origLog(chalk.bgBlue (`[HOTLOAD] ${ts()} 🔥 ${m}`)),
-  loader:  m => _origLog(chalk.hex("#FF69B4")(`[LOADER]  ${ts()} 📦 ${m}`)),
+  info:    m => _origLog(chalk.cyan    (`  ℹ️  [তথ্য]    » ${m}`)),
+  success: m => _origLog(chalk.green   (`  ✅ [সফল]     » ${m}`)),
+  warn:    m => _origLog(chalk.yellow  (`  ⚠️  [সতর্ক]  » ${m}`)),
+  error:   m => _origLog(chalk.red     (`  ❌ [ত্রুটি]  » ${m}`)),
+  bot:     m => _origLog(chalk.magenta (`  🤖 [বট]      » ${m}`)),
+  cmd:     m => _origLog(chalk.blue    (`  ⚡ [কমান্ড]  » ${m}`)),
+  event:   m => _origLog(chalk.gray    (`  📡 [ইভেন্ট]  » ${m}`)),
+  hot:     m => _origLog(chalk.bgBlue  (`  🔥 [HOTLOAD] » ${m}`)),
+  loader:  m => _origLog(chalk.hex("#FF69B4")(`  📦 [LOADER]  » ${m}`)),
+  section: t => {
+    _origLog("");
+    _origLog(chalk.hex("#444444")(`  ┌─────────────────────────────────────`));
+    _origLog(chalk.hex("#FFD700").bold(`  │  ${t}`));
+    _origLog(chalk.hex("#444444")(`  └─────────────────────────────────────`));
+  },
+  done: (cmd, fail) => {
+    _origLog("");
+    _origLog(chalk.hex("#444444")("  ╔══════════════════════════════════════════╗"));
+    _origLog(chalk.green.bold    ("  ║  🚀 বট সম্পূর্ণ চালু হয়েছে!              ║"));
+    _origLog(chalk.hex("#444444")("  ╠══════════════════════════════════════════╣"));
+    _origLog(chalk.cyan          (`  ║  ⚡ কমান্ড  : ${String(cmd).padEnd(26)}║`));
+    _origLog(chalk.red           (`  ║  ❌ ব্যর্থ  : ${String(fail).padEnd(26)}║`));
+    _origLog(chalk.yellow        (`  ║  🕐 সময়    : ${moment().tz("Asia/Dhaka").format("HH:mm:ss DD/MM/YYYY").padEnd(26)}║`));
+    _origLog(chalk.hex("#444444")("  ╚══════════════════════════════════════════╝"));
+    _origLog("");
+  },
 };
 global.log = log;
 
@@ -272,12 +325,12 @@ global.GoatBot = {
 function autoInstall(pkg, ver = "") {
   if (!pkg || typeof pkg !== "string") return false;
   const name = ver ? `${pkg}@${ver}` : pkg;
-  log.warn(`Package install: ${name}`);
+  log.warn(`নতুন package ইন্সটল হচ্ছে: ${name} — অপেক্ষা করুন...`);
   const r = spawnSync("npm", ["install", name, "--save", "--legacy-peer-deps", "--prefer-offline"], {
     stdio: "pipe", cwd: ROOT, timeout: 60000,
   });
-  if (r.status === 0) { log.success(`Installed: ${name}`); return true; }
-  log.error(`Install failed: ${name}`);
+  if (r.status === 0) { log.success(`Package ইন্সটল সম্পন্ন: ${name}`); return true; }
+  log.error(`Package ইন্সটল ব্যর্থ: ${name} — internet connection চেক করুন`);
   return false;
 }
 global.requireOrInstall = (pkg, ver = "") => {
@@ -292,7 +345,11 @@ global.requireOrInstall = (pkg, ver = "") => {
 // ═══════════════════════════════════════════════════
 function loadConfig() {
   const p = path.join(ROOT, "config.json");
-  if (!fs.existsSync(p)) { log.error("config.json নেই!"); process.exit(1); }
+  if (!fs.existsSync(p)) {
+    log.error("config.json ফাইল পাওয়া যায়নি!");
+    log.error("সমাধান: root ফোল্ডারে config.json ফাইল আছে কিনা দেখো।");
+    process.exit(1);
+  }
   try {
     global.config = JSON.parse(fs.readFileSync(p, "utf-8"));
     // Compatibility aliases
@@ -306,8 +363,13 @@ function loadConfig() {
     const envMap = { GROQ_KEY:"GROQ", GEMINI_KEY:"GEMINI", VOICERSS_KEY:"VOICERSS", IMGBB_KEY:"IMGBB" };
     for (const [ek, ak] of Object.entries(envMap))
       if (process.env[ek] && global.config.APIKEYS) global.config.APIKEYS[ak] = process.env[ek];
-    log.success("config.json লোড সম্পন্ন।");
-  } catch (e) { log.error(`config.json ত্রুটি: ${e.message}`); process.exit(1); }
+    log.success("config.json লোড সম্পন্ন ✅");
+  } catch (e) {
+    log.error(`config.json পড়তে সমস্যা হয়েছে!`);
+    log.error(`কারণ: ${e.message}`);
+    log.error(`সমাধান: config.json ফাইলটা JSON validator দিয়ে চেক করো।`);
+    process.exit(1);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -342,8 +404,8 @@ function loadLanguage() {
         text = text.replace(new RegExp(`%${i}`, "g"), args[i - 1]);
       return text;
     };
-    log.success(`Language লোড: ${lang}`);
-  } catch { global.getText = (m, k) => `[${m}.${k}]`; }
+    log.success(`ভাষা ফাইল লোড সম্পন্ন: ${lang} ✅`);
+  } catch { global.getText = (m, k) => `[${m}.${k}]`; log.warn("ভাষা ফাইল পাওয়া যায়নি, default ব্যবহার হবে।"); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -353,7 +415,7 @@ function loadLanguage() {
 // ═══════════════════════════════════════════════════
 function loadCommands() {
   const dir = path.join(ROOT, "Script", "commands");
-  if (!fs.existsSync(dir)) return log.warn("Script/commands/ নেই।");
+  if (!fs.existsSync(dir)) return log.warn("Script/commands/ ফোল্ডার পাওয়া যায়নি! কমান্ড ফাইলগুলো এখানে রাখো।");
   const disabled = new Set(global.config.commandDisabled || []);
   const files = fs.readdirSync(dir).filter(
     f => f.endsWith(".js") && !f.startsWith("_") && !disabled.has(f.replace(".js", ""))
@@ -385,15 +447,16 @@ function loadCommands() {
 
       // Run onLoad async (image/file pre-cache)
       if (typeof cmd.onLoad === "function")
-        Promise.resolve(cmd.onLoad()).catch(e => log.warn(`[onLoad] ${cmd.config.name}: ${e.message}`));
+        Promise.resolve(cmd.onLoad()).catch(e => log.warn(`[${cmd.config.name}] onLoad ত্রুটি: ${e.message}`));
 
       ok++;
     } catch (e) {
-      log.error(`[LOAD] ${file}: ${e.message}`);
+      log.error(`[${file}] লোড ব্যর্থ: ${e.message}`);
       fail++;
     }
   }
-  log.success(`কমান্ড লোড → ✅ ${ok} | ❌ ${fail}`);
+  log.success(`কমান্ড লোড → ✅ ${ok} সফল | ❌ ${fail} ব্যর্থ`);
+  global.client._loadFail = (global.client._loadFail || 0) + fail;
 }
 
 // ═══════════════════════════════════════════════════
@@ -416,7 +479,7 @@ function loadEvents() {
       if (!evt.run && !evt.handleEvent) continue;
       global.client.events.set(evt.config.name, evt);
       ok++;
-    } catch (e) { log.error(`[EVENT] ${file}: ${e.message}`); }
+    } catch (e) { log.error(`[${file}] ইভেন্ট লোড ব্যর্থ: ${e.message}`); }
   }
   log.success(`ইভেন্ট লোড → ✅ ${ok}`);
 }
@@ -441,7 +504,7 @@ function startHotReloader() {
       }
       try {
         const check = spawnSync(process.execPath, ["--check", fp], { stdio: "pipe" });
-        if (check.status !== 0) { log.error(`[HOTLOAD] Syntax error: ${filename}`); return; }
+        if (check.status !== 0) { log.error(`[HotLoad] ${filename} এ syntax error আছে — লোড বাতিল করা হয়েছে`); return; }
         delete require.cache[require.resolve(fp)];
         const cmd = require(fp);
         if (!cmd?.config?.name || (!cmd.run && !cmd.onStart && !cmd.onCall)) return;
@@ -452,9 +515,9 @@ function startHotReloader() {
           global.client.eventRegistered.push(cmd.config.name);
         cmd._filePath = fp;
         global.client.commands.set(cmd.config.name, cmd);
-        log.hot(`Updated: [${cmd.config.name}]`);
+        log.hot(`[${cmd.config.name}] সফলভাবে আপডেট হয়েছে ✅`);
         try { global.client.api?.sendMessage(`🔥 HotLoad: [${cmd.config.name}] আপডেট হয়েছে`, (global.config.ADMINBOT || [])[0] || ""); } catch {}
-      } catch (e) { log.error(`[HOTLOAD] ${filename}: ${e.message}`); }
+      } catch (e) { log.error(`[HotLoad] ${filename} লোড করতে সমস্যা: ${e.message}`); }
     }, 600);
   });
   log.success("HotReloader সক্রিয়।");
@@ -466,10 +529,10 @@ function startHotReloader() {
 async function connectDatabase() {
   const { sequelize, Sequelize } = require("./includes/database");
   await sequelize.authenticate();
-  log.success("Database সংযোগ সফল।");
+  log.success("ডেটাবেজ সংযোগ সফল ✅");
   const models = require("./includes/database/model")({ Sequelize, sequelize });
   await sequelize.sync({ alter: false });
-  log.success("Database টেবিল প্রস্তুত।");
+  log.success("ডেটাবেজ টেবিল প্রস্তুত ✅");
   return models;
 }
 
@@ -500,7 +563,7 @@ async function loadDBData(Threads, Users, Currencies) {
   for (const c of allCurr)
     if (!global.data.allCurrenciesID.includes(String(c.userID))) global.data.allCurrenciesID.push(String(c.userID));
 
-  log.success(`DB লোড → ${allThreads.length} গ্রুপ | ${allUsers.length} ইউজার`);
+  log.success(`ডেটাবেজ লোড সম্পন্ন → ${allThreads.length}টি গ্রুপ | ${allUsers.length}জন ইউজার ✅`);
 }
 
 // ═══════════════════════════════════════════════════
@@ -542,8 +605,8 @@ function setupExpress() {
       commands: global.client.commands.size,
       cachedMessages: global.client.messageCache.size,
     }));
-    app.listen(PORT, () => log.success(`Express চালু: port ${PORT}`));
-  } catch (e) { log.warn("Express: " + e.message); }
+    app.listen(PORT, () => log.success(`Express server চালু: port ${PORT} ✅`));
+  } catch (e) { log.warn(`Express server চালু করা যায়নি: ${e.message}`); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -556,10 +619,18 @@ async function startBot(models) {
   const Currencies = require(path.join(ctrlPath, "currencies"))({ models });
 
   const apPath = path.resolve(ROOT, global.config.APPSTATEPATH || "appstate.json");
-  if (!fs.existsSync(apPath)) { log.error("appstate.json নেই!"); process.exit(1); }
+  if (!fs.existsSync(apPath)) {
+    log.error("appstate.json ফাইল পাওয়া যায়নি!");
+    log.error("সমাধান: c3c-fbstate বা browser extension দিয়ে appstate তৈরি করো।");
+    process.exit(1);
+  }
   let appstate;
   try { appstate = JSON.parse(fs.readFileSync(apPath, "utf-8")); }
-  catch { log.error("appstate.json পড়তে সমস্যা।"); process.exit(1); }
+  catch {
+    log.error("appstate.json পড়তে সমস্যা হয়েছে!");
+    log.error("সমাধান: appstate.json ফাইলটা সঠিক JSON format এ আছে কিনা চেক করো।");
+    process.exit(1);
+  }
 
   log.info("Facebook লগইন হচ্ছে...");
 
@@ -567,13 +638,18 @@ async function startBot(models) {
     if (loginErr) {
       const code = loginErr?.error || loginErr?.code || "";
       const msg  = loginErr?.errorSummary || loginErr?.message || JSON.stringify(loginErr);
-      log.error(`লগইন ব্যর্থ: ${msg}`);
+      log.error(`লগইন ব্যর্থ হয়েছে!`);
+      log.error(`কারণ: ${msg}`);
       if (String(code) === "1357004" || String(msg).includes("Not logged in")) {
-        log.warn("════════════════════════════════════════");
-        log.warn("❌ APPSTATE EXPIRED!");
-        log.warn("✅ সমাধান: নতুন appstate.json দিন।");
-        log.warn("   Tool: c3c-fbstate বা browser extension");
-        log.warn("════════════════════════════════════════");
+        _origLog("");
+        _origLog(chalk.red("  ╔══════════════════════════════════════════════╗"));
+        _origLog(chalk.red("  ║  ❌ APPSTATE মেয়াদ শেষ হয়ে গেছে!           ║"));
+        _origLog(chalk.red("  ╠══════════════════════════════════════════════╣"));
+        _origLog(chalk.yellow("  ║  ✅ সমাধান: নতুন appstate.json দিন।        ║"));
+        _origLog(chalk.yellow("  ║  🔧 Tool: c3c-fbstate বা browser extension  ║"));
+        _origLog(chalk.yellow("  ║  📌 তারপর GitHub এ push করুন               ║"));
+        _origLog(chalk.red("  ╚══════════════════════════════════════════════╝"));
+        _origLog("");
       }
       process.exit(1);
     }
@@ -619,6 +695,7 @@ async function startBot(models) {
 
     log.bot(`✅ ${global.client.commands.size} কমান্ড | ${global.client.events.size} ইভেন্ট | UID: ${global.config.botID}`);
     log.bot(`🚀 BELAL BOTX666 v8.0 চলছে — ${moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss")}`);
+    log.done(global.client.commands.size, global.client._loadFail || 0);
 
     // Auto-save appstate every 30min
     setInterval(() => {
@@ -634,12 +711,13 @@ async function startBot(models) {
         const code = String(err?.error || err?.code || "");
         const msg  = String(err?.errorSummary || err?.message || err?.error || "");
         if (msg.includes("sync_sequence_id")) {
-          log.warn("sync_sequence_id error — গ্রুপে একটা message পাঠাও তারপর restart করো।");
+          log.warn("sync_sequence_id পাওয়া যায়নি।");
+          log.warn("সমাধান: গ্রুপে একটা message পাঠাও তারপর restart করো।");
           return;
         }
-        log.error(`Listener: [${code}] ${msg.slice(0, 100)}`);
+        log.error(`Listener ত্রুটি: [${code}] ${msg.slice(0, 100)}`);
         if (code === "1357004") {
-          log.warn("❌ Session expired! appstate নতুন করুন।");
+          log.warn("Facebook session শেষ হয়ে গেছে! নতুন appstate দিন।");
           setTimeout(() => process.exit(1), 3000);
         }
         return;
@@ -685,7 +763,7 @@ async function startBot(models) {
             handleEventFn({ event });
         }
       } catch (e) {
-        log.error(`Listener process: ${e.message}`);
+        log.error(`মেসেজ process করতে সমস্যা হয়েছে: ${e.message}`);
         saveCrashLog("listener", e);
       }
     });
@@ -693,7 +771,7 @@ async function startBot(models) {
     // Auto-restart
     const sys = global.config?.System || global.config?.SYSTEM || {};
     if (sys.autoRestart && sys.restartInterval)
-      setTimeout(() => { log.warn("Auto-restart..."); process.exit(0); }, sys.restartInterval * 1000);
+      setTimeout(() => { log.warn("⏰ নির্ধারিত সময়ে বট পুনরায় চালু হচ্ছে..."); process.exit(0); }, sys.restartInterval * 1000);
   });
 }
 
@@ -718,19 +796,44 @@ async function main() {
   if (!fs.existsSync(dataJsonPath))
     fs.writeFileSync(dataJsonPath, JSON.stringify({ adminbox: {} }, null, 2));
 
-  process.on("unhandledRejection", r => { log.error(`Rejection: ${r}`); saveCrashLog("rejection", r); });
-  process.on("uncaughtException",  e => { log.error(`Exception: ${e.message}`); saveCrashLog("exception", e); });
+  process.on("unhandledRejection", r => {
+    log.error(`অপ্রত্যাশিত ত্রুটি ধরা পড়েছে (rejection):`);
+    log.error(String(r).slice(0, 200));
+    saveCrashLog("rejection", r);
+  });
+  process.on("uncaughtException", e => {
+    log.error(`অপ্রত্যাশিত ত্রুটি ধরা পড়েছে (exception):`);
+    log.error(e.message);
+    saveCrashLog("exception", e);
+  });
 
+  printBanner();
+
+  log.section("⚙️  কনফিগ ও ভাষা লোড হচ্ছে...");
   loadConfig();
   loadLanguage();
+
+  log.section("📦 কমান্ড ও ইভেন্ট লোড হচ্ছে...");
   loadCommands();
   loadEvents();
 
+  log.section("🗄️  ডেটাবেজ সংযোগ হচ্ছে...");
   let models;
   try { models = await connectDatabase(); }
-  catch (e) { log.error(`Database: ${e.message}`); process.exit(1); }
+  catch (e) {
+    log.error(`ডেটাবেজ সংযোগ ব্যর্থ হয়েছে!`);
+    log.error(`কারণ: ${e.message}`);
+    log.error(`সমাধান: includes/database/ ফোল্ডার ঠিক আছে কিনা দেখো।`);
+    process.exit(1);
+  }
 
+  log.section("🔐 Facebook লগইন হচ্ছে...");
   await startBot(models);
 }
 
-main().catch(e => { log.error(`বট চালু হয়নি: ${e.message}`); process.exit(1); });
+main().catch(e => {
+  log.error(`বট চালু হতে পারেনি!`);
+  log.error(`কারণ: ${e.message}`);
+  log.error(`logs/ ফোল্ডারে crash log দেখো।`);
+  process.exit(1);
+});
