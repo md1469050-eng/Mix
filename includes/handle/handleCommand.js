@@ -39,10 +39,48 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
       : (global.config?.PREFIX ?? "/");
 
     // ✅ FIX: noprefix সঠিকভাবে check করো
-    // prefix.js "no prefix" দিলে global.config.PREFIX = "" হয়
     const isNoPrefix = effectivePrefix === ""
       || effectivePrefix === null
       || effectivePrefix === undefined;
+
+    // ✅ SPECIAL: "no prefix", "prefix +", "prefix" — এগুলো
+    // prefix ছাড়াই আসে, prefix check এর আগেই ধরতে হবে
+    const bodyTrimLower = body.trim().toLowerCase();
+    const isPrefixTrigger =
+      bodyTrimLower === "prefix" ||
+      bodyTrimLower === "no prefix" ||
+      bodyTrimLower === "noprefix" ||
+      bodyTrimLower === "prefix no" ||
+      bodyTrimLower.startsWith("prefix +");
+
+    if (isPrefixTrigger) {
+      // prefix কমান্ড সরাসরি চালাও
+      const prefixCmd = commands.get("prefix");
+      if (prefixCmd) {
+        const runner = prefixCmd.run || prefixCmd.onStart || prefixCmd.onCall;
+        if (runner) {
+          const message = {
+            reply:  (msg, cb) => api.sendMessage(msg, threadID, cb || (() => {}), messageID),
+            send:   (msg, tid) => api.sendMessage(msg, tid || threadID),
+            react:  (emoji)   => api.setMessageReaction(emoji, messageID, () => {}, true),
+            unsend: (mid)     => api.unsendMessage(mid),
+          };
+          try {
+            await runner({
+              api, event, models, Users, Threads, Currencies,
+              args: body.trim().split(/ +/).slice(1),
+              message, prefix: effectivePrefix,
+              threadID, messageID, senderID,
+              permssion: 0, role: 0,
+              getText: () => "",
+            });
+          } catch (e) {
+            global.log?.error?.(`[prefix] ত্রুটি: ${e.message}`);
+          }
+        }
+      }
+      return;
+    }
 
     if (!isNoPrefix) {
       const rx = new RegExp(`^(<@!?${escapeRegex(senderID)}>|${escapeRegex(effectivePrefix)})\\s*`);
