@@ -1,37 +1,33 @@
 "use strict";
-
 module.exports = function ({ api, models, Users, Threads, Currencies }) {
-  return async function ({ event }) {
-    if (event.type !== "message_reply") return;
-    const { messageReply } = event;
-    if (!messageReply) return;
+  return function ({ event }) {
+    if (!event.messageReply) return;
+    const { handleReply, commands } = global.client || {};
+    if (!handleReply?.length) return;
+    const { messageID, threadID, messageReply } = event;
+    const idx = handleReply.findIndex(e => e.messageID == messageReply.messageID);
+    if (idx < 0) return;
+    const handler = handleReply[idx];
+    const cmdName = handler.name || handler.commandName;
+    const cmd     = commands.get(cmdName);
+    if (!cmd?.handleReply) return;
 
-    const handleReply = global.client.handleReply;
+    // One-shot: remove unless persistReply
+    if (!handler.persistReply) handleReply.splice(idx, 1);
 
-    for (let i = handleReply.length - 1; i >= 0; i--) {
-      const handler = handleReply[i];
-      if (handler.messageID !== messageReply.messageID) continue;
-
-      // ✅ "name" (GoatBot) এবং "commandName" (Mirai) দুটোই সাপোর্ট
-      const cmdName = handler.commandName || handler.name;
-      if (!cmdName) continue;
-
-      const cmd = global.client.commands.get(cmdName);
-      if (!cmd?.handleReply) continue;
-
-      // one-shot: use করার পর remove
-      if (!handler.persistReply) handleReply.splice(i, 1);
-
-      try {
-        await cmd.handleReply({
-          api, event, models, Users, Threads, Currencies,
-          handleReply: handler, // GoatBot style
-          ...handler,           // spread for direct access
-        });
-      } catch (err) {
-        global.log.error(`handleReply [${cmdName}] ত্রুটি: ${err.message}`);
-      }
-      break;
+    let getText2 = () => "";
+    const lang = global.config?.language || "en";
+    if (cmd.languages?.[lang]) {
+      getText2 = (...v) => {
+        let t = cmd.languages[lang][v[0]] || "";
+        for (let i = v.length; i > 0; i--) t = t.replace(new RegExp("%" + i, "g"), v[i]);
+        return t;
+      };
+    }
+    try {
+      cmd.handleReply({ api, event, models, Users, Threads, Currencies, handleReply: handler, getText: getText2, ...handler });
+    } catch (e) {
+      api.sendMessage(`❌ Reply handler ত্রুটি: ${e.message?.slice(0, 100)}`, threadID, messageID);
     }
   };
 };

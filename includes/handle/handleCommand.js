@@ -1,114 +1,242 @@
 "use strict";
+/*
+╔═══════════════════════════════════════════════════════════════════╗
+║     🤖 BELAL BOTX666 — handleCommand.js v8.0 (2026 ULTIMATE)    ║
+╚═══════════════════════════════════════════════════════════════════╝
+*/
+module.exports = function ({ api, models, Users, Threads, Currencies }) {
+  const stringSimilarity = (() => { try { return require("string-similarity"); } catch { return null; } })();
+  const moment = require("moment-timezone");
+  const path   = require("path");
+  const fs     = require("fs-extra");
+  const escapeRegex = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-module.exports = ({ api, models, Users, Threads, Currencies }) => {
-  return async function handleCommand({ event }) {
-    const { body = "", senderID, threadID, type } = event;
-    if (!body || type === "message_unsend") return;
+  return async function ({ event }) {
+    const dateNow = Date.now();
+    const time    = moment.tz("Asia/Dhaka").format("HH:mm:ss DD/MM/YYYY");
 
-    // ✅ Crash-proof — কখনো undefined হবে না
-    const PREFIX   = global.config?.PREFIX !== undefined ? global.config.PREFIX : "/";
-    const botID    = global.config?.botID;
-    const noPrefix = PREFIX === "" || PREFIX === null;
+    const { allowInbox, PREFIX, ADMINBOT = [], NDH = [], DeveloperMode } = global.config || {};
+    const { userBanned, threadBanned, threadInfo, threadData, commandBanned } = global.data || {};
+    const { commands, cooldowns } = global.client || {};
 
+    var { body = "", senderID, threadID, messageID } = event;
+    senderID = String(senderID);
+    threadID = String(threadID);
+
+    if (!body || event.type === "message_unsend") return;
+    const botID = String(global.config?.botID || "");
     if (senderID === botID) return;
-    if (global.data?.userBanned?.has(String(senderID))) return;
-    if (global.data?.threadBanned?.has(String(threadID))) return;
 
-    const bodyTrim = body.trim();
+    // ── Per-thread PREFIX ─────────────────────────────────────────
+    const threadSetting  = (threadData && threadData.get(threadID)) || {};
+    const effectivePrefix = threadSetting.hasOwnProperty("PREFIX")
+      ? threadSetting.PREFIX
+      : (PREFIX ?? "/");
 
-    // ── PREFIX TRIGGERS (prefix ছাড়াই কাজ করে) ──────────
-    const bodyLower = bodyTrim.toLowerCase();
-    if (
-      bodyLower === "prefix" ||
-      bodyLower === "no prefix" ||
-      bodyLower === "noprefix" ||
-      bodyLower.startsWith("prefix +")
-    ) {
-      const prefixCmd = global.client.commands.get("prefix");
-      if (prefixCmd) {
-        const ctx = buildCtx({ api, event, args: bodyTrim.split(/\s+/).slice(1), models, Users, Threads, Currencies, PREFIX });
-        try { await runCmd(prefixCmd, ctx); } catch (e) { global.log?.error(`prefix: ${e.message}`); }
+    // ── noPrefix mode ─────────────────────────────────────────────
+    const isNoPrefix = effectivePrefix === "" || effectivePrefix === null
+      || global.GoatBot?.config?.isPrefix === false;
+
+    if (!isNoPrefix) {
+      const rx = new RegExp(`^(<@!?${escapeRegex(senderID)}>|${escapeRegex(effectivePrefix)})\\s*`);
+      if (!rx.test(body)) return;
+    }
+
+    // ── Mode guards ───────────────────────────────────────────────
+    const cfg = global.config || {};
+    if (!global.data?.allThreadID?.includes(threadID) && !ADMINBOT.includes(senderID) && cfg.adminPaOnly == true)
+      return api.sendMessage("MODE » শুধু admins inbox এ ব্যবহার করতে পারবে", threadID, messageID);
+    if (!ADMINBOT.includes(senderID) && cfg.adminOnly == true)
+      return api.sendMessage("MODE » শুধু admins বট ব্যবহার করতে পারবে", threadID, messageID);
+    if (!NDH.includes(senderID) && !ADMINBOT.includes(senderID) && cfg.ndhOnly == true)
+      return api.sendMessage("MODE » শুধু bot support বট ব্যবহার করতে পারবে", threadID, messageID);
+
+    // ── Adminbox ──────────────────────────────────────────────────
+    try {
+      const adboxPath = path.join(process.cwd(), "Script/commands/cache/data.json");
+      if (fs.existsSync(adboxPath)) {
+        const dataAdbox  = JSON.parse(fs.readFileSync(adboxPath, "utf-8"));
+        const threadInf  = threadInfo?.get(threadID) || await Threads.getInfo(threadID).catch(() => ({ adminIDs: [] }));
+        const isGroupAdmin = (threadInf.adminIDs || []).find(el => String(el.id) == senderID);
+        if (
+          dataAdbox.adminbox?.[threadID] == true &&
+          !ADMINBOT.includes(senderID) &&
+          !isGroupAdmin &&
+          event.isGroup == true
+        ) return api.sendMessage("MODE » শুধু group admins বট ব্যবহার করতে পারবে", threadID, messageID);
       }
-      return;
+    } catch {}
+
+    // ── Ban check ─────────────────────────────────────────────────
+    if (!ADMINBOT.includes(senderID)) {
+      if (!allowInbox && senderID === threadID) return;
+      if (userBanned?.has(senderID)) {
+        const { reason, dateAdded } = userBanned.get(senderID) || {};
+        return api.sendMessage(
+          global.getText?.("handleCommand", "userBanned", reason, dateAdded) || `🚫 তুমি বট ব্যবহার করতে banned আছো।\n📝 কারণ: ${reason}`,
+          threadID,
+          async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); },
+          messageID
+        );
+      }
+      if (threadBanned?.has(threadID)) {
+        const { reason, dateAdded } = threadBanned.get(threadID) || {};
+        return api.sendMessage(
+          global.getText?.("handleCommand", "threadBanned", reason, dateAdded) || `🚫 এই thread বট ব্যবহারে banned।\n📝 কারণ: ${reason}`,
+          threadID,
+          async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); },
+          messageID
+        );
+      }
     }
 
-    // ── PREFIX ENGINE ─────────────────────────────────────
-    let commandName, args;
-
-    if (noPrefix) {
-      const parts = bodyTrim.split(/\s+/);
-      commandName  = parts[0]?.toLowerCase();
-      args         = parts.slice(1);
+    // ── Parse args ────────────────────────────────────────────────
+    let args, commandName;
+    if (isNoPrefix) {
+      const parts = body.trim().split(/ +/);
+      commandName = parts.shift().toLowerCase();
+      args = parts;
     } else {
-      if (!bodyTrim.startsWith(PREFIX)) return;
-      const withoutPrefix = bodyTrim.slice(PREFIX.length).trim();
-      const parts = withoutPrefix.split(/\s+/);
-      commandName  = parts[0]?.toLowerCase();
-      args         = parts.slice(1);
+      const rx2     = new RegExp(`^(<@!?${escapeRegex(senderID)}>|${escapeRegex(effectivePrefix)})\\s*`);
+      const matched = body.match(rx2);
+      if (!matched) return;
+      const parts  = body.slice(matched[0].length).trim().split(/ +/);
+      commandName  = parts.shift().toLowerCase();
+      args         = parts;
     }
-
     if (!commandName) return;
 
-    // ── COMMAND LOOKUP ────────────────────────────────────
-    const cmd = global.client.commands.get(commandName)
-             || [...global.client.commands.values()].find(c =>
-                  c.config?.aliases?.map(a => a.toLowerCase()).includes(commandName)
-                );
-    if (!cmd) return;
+    // ── Command lookup + aliases + string-similarity ──────────────
+    let command = commands.get(commandName)
+      || [...commands.values()].find(c =>
+          (c.config?.aliases || []).map(a => a.toLowerCase()).includes(commandName)
+        );
 
-    // Cooldown
-    const now    = Date.now();
-    const cdKey  = `${senderID}:${cmd.config.name}`;
-    const cdSecs = cmd.config.cooldowns ?? cmd.config.countDown
-                ?? cmd.config.coolDown  ?? global.config?.COOLDOWNS?.default ?? 3;
-    if (global.client.cooldowns.has(cdKey)) {
-      const expiry = global.client.cooldowns.get(cdKey);
-      if (now < expiry) {
-        const left = ((expiry - now) / 1000).toFixed(1);
-        return api.sendMessage(`⏳ ${left} সেকেন্ড পর আবার ব্যবহার করুন।`, threadID);
+    if (!command) {
+      if (stringSimilarity) {
+        const allNames = [...commands.keys()];
+        if (allNames.length) {
+          const checker = stringSimilarity.findBestMatch(commandName, allNames);
+          if (checker.bestMatch.rating >= 0.5) {
+            command = commands.get(checker.bestMatch.target);
+          } else {
+            return api.sendMessage(
+              `❓ "${commandName}" কমান্ড পাওয়া যায়নি।\n💡 কাছাকাছি: ${effectivePrefix}${checker.bestMatch.target}`,
+              threadID
+            );
+          }
+        }
       }
-    }
-    if (cdSecs > 0) global.client.cooldowns.set(cdKey, now + cdSecs * 1000);
-
-    // Admin guard
-    const role = cmd.config.role ?? cmd.config.hasPermssion ?? 0;
-    if (role >= 1) {
-      const admins = global.config?.ADMINBOT || [];
-      if (!admins.includes(String(senderID)))
-        return api.sendMessage("🔒 এই কমান্ডটি শুধুমাত্র অ্যাডমিনের জন্য।", threadID);
+      if (!command) return;
     }
 
-    global.log?.cmd(`[${cmd.config.name}] → ${senderID} @ ${threadID}`);
+    // ── commandBanned ─────────────────────────────────────────────
+    if (!ADMINBOT.includes(senderID)) {
+      const banT = commandBanned?.get(threadID) || [];
+      const banU = commandBanned?.get(senderID)  || [];
+      if (banT.includes(command.config.name))
+        return api.sendMessage(`🚫 এই thread এ "${command.config.name}" নিষিদ্ধ।`, threadID,
+          async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); }, messageID);
+      if (banU.includes(command.config.name))
+        return api.sendMessage(`🚫 তুমি "${command.config.name}" ব্যবহার করতে পারবে না।`, threadID,
+          async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); }, messageID);
+    }
 
-    const ctx = buildCtx({ api, event, args, models, Users, Threads, Currencies, PREFIX });
-    try { await runCmd(cmd, ctx); }
-    catch (err) {
-      global.log?.error(`[${cmd.config.name}] ত্রুটি: ${err.message}`);
-      try { api.sendMessage(`❌ ${err.message?.slice(0, 150)}`, threadID); } catch {}
+    // ── NSFW guard ────────────────────────────────────────────────
+    const cmdCat = (command.config?.commandCategory || command.config?.category || "").toLowerCase();
+    if (cmdCat === "nsfw" && !global.data?.threadAllowNSFW?.includes(threadID) && !ADMINBOT.includes(senderID))
+      return api.sendMessage("🔞 এই thread এ NSFW কমান্ড চালানো যাবে না।\n✅ Enable করতে: /nsfw on", threadID,
+        async (err, info) => { await new Promise(r => setTimeout(r, 5000)); api.unsendMessage(info?.messageID).catch(() => {}); }, messageID);
+
+    // ── Permission 0/1/2/3 ────────────────────────────────────────
+    let permssion = 0;
+    try {
+      const tInfo = threadInfo?.get(threadID) || await Threads.getInfo(threadID).catch(() => ({ adminIDs: [] }));
+      const isGA  = (tInfo.adminIDs || []).find(el => String(el.id) == senderID);
+      if (ADMINBOT.includes(String(senderID)))                                          permssion = 3;
+      else if (NDH.includes(String(senderID)))                                          permssion = 2;
+      else if (isGA)                                                                    permssion = 1;
+    } catch {}
+
+    const requiredPerm = command.config?.hasPermssion ?? command.config?.role ?? 0;
+    if (requiredPerm > permssion) {
+      const permNames = ["সবাই", "গ্রুপ Admin", "Bot Support", "Bot Admin"];
+      return api.sendMessage(
+        `🔒 এই কমান্ডের জন্য "${permNames[requiredPerm]}" পারমিশন দরকার।`,
+        threadID, messageID
+      );
+    }
+
+    // ── Cooldown ──────────────────────────────────────────────────
+    if (!cooldowns.has(command.config.name)) cooldowns.set(command.config.name, new Map());
+    const timestamps = cooldowns.get(command.config.name);
+    const cdSecs     = command.config.cooldowns ?? command.config.countDown ?? command.config.coolDown ?? 1;
+    if (timestamps.has(senderID) && dateNow < timestamps.get(senderID) + cdSecs * 1000) {
+      const left = ((timestamps.get(senderID) + cdSecs * 1000 - dateNow) / 1000).toFixed(1);
+      return api.sendMessage(`⏳ ${left} সেকেন্ড পর আবার চেষ্টা করুন।`, threadID, messageID);
+    }
+
+    // ── per-command getText ───────────────────────────────────────
+    let getText2 = () => "";
+    const lang2 = global.config?.language || "en";
+    if (command.languages?.[lang2]) {
+      getText2 = (...v) => {
+        let t = command.languages[lang2][v[0]] || "";
+        for (let i = v.length; i > 0; i--) t = t.replace(new RegExp("%" + i, "g"), v[i]);
+        return t;
+      };
+    }
+
+    // ── Execute ───────────────────────────────────────────────────
+    global.log?.cmd?.(`[${command.config.name}] ← ${senderID} @ ${threadID}`);
+    try {
+      const message = {
+        reply:  (msg, cb)  => api.sendMessage(msg, threadID, cb || (() => {}), messageID),
+        send:   (msg, tid) => api.sendMessage(msg, tid || threadID),
+        react:  (emoji)    => api.setMessageReaction(emoji, messageID, () => {}, true),
+        unsend: (mid)      => api.unsendMessage(mid),
+      };
+
+      const Obj = {
+        api, event, args, models,
+        Users, Threads, Currencies,
+        permssion, role: permssion,
+        message, getText: getText2,
+        prefix: effectivePrefix,
+        threadID, messageID, senderID,
+        // handleReply registration
+        onReply(handler) {
+          global.client.handleReply.push({
+            author: senderID, messageID,
+            name: command.config.name,
+            commandName: command.config.name,
+            handler,
+          });
+        },
+        // handleReaction registration
+        onReact(handler) {
+          global.client.handleReaction.push({
+            author: senderID, messageID,
+            name: command.config.name,
+            commandName: command.config.name,
+            handler,
+          });
+        },
+      };
+
+      const runner = command.run || command.onStart || command.onCall;
+      if (!runner) throw new Error(`No run/onStart/onCall in [${command.config.name}]`);
+      await runner(Obj);
+      timestamps.set(senderID, dateNow);
+
+      if (DeveloperMode)
+        global.log?.info?.(`[DEV] ${commandName} | ${senderID} | ${Date.now() - dateNow}ms`);
+    } catch (e) {
+      global.log?.error?.(`[${command.config.name}] ত্রুটি: ${e.message}`);
+      api.sendMessage(
+        `❌ কমান্ড [${commandName}] এ সমস্যা হয়েছে:\n${e.message?.slice(0, 150)}`,
+        threadID
+      );
     }
   };
 };
-
-function buildCtx({ api, event, args, models, Users, Threads, Currencies, PREFIX }) {
-  const { threadID, senderID, messageID } = event;
-  // ✅ prefix এবং config দুটোই pass করা হচ্ছে — help.js সহ সব command কাজ করবে
-  return {
-    api, event, args, models, Users, Threads, Currencies,
-    threadID, senderID, messageID,
-    prefix: PREFIX,
-    config: global.config || {},
-    message: {
-      reply:  (m) => api.sendMessage(m, threadID),
-      send:   (m, tid) => api.sendMessage(m, tid || threadID),
-      react:  (e) => api.setMessageReaction(e, messageID, () => {}, true),
-      unsend: (m) => api.unsendMessage(m),
-    },
-  };
-}
-
-async function runCmd(cmd, ctx) {
-  const runner = cmd.onStart || cmd.run || cmd.onCall;
-  if (runner) return await runner(ctx);
-  if (cmd._wrapped) return await cmd._wrapped(ctx);
-        }
-    
