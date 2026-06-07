@@ -3,12 +3,12 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "baby",
-    version: "27.0.0",
+    version: "28.0.0",
     author: "Belal YT",
     cooldowns: 0,
     hasPermssion: 0,
     noPrefix: true,
-    description: "পারসোনালিটি চ্যাটবট (লোকাল উত্তর নেই, সব API থেকে)",
+    description: "পারসোনালিটি চ্যাটবট (স্থিতিশীল API)",
     category: "chat"
   },
   run: async ({ api, event, args }) => {
@@ -21,7 +21,7 @@ module.exports = {
     const body = event.body?.toLowerCase() || "";
     if (body.startsWith("baby") || body.startsWith("বেবি") || body.startsWith("বট")) {
       const q = body.replace(/^baby\s*|^বেবি\s*|^বট\s*/, "").trim();
-      if (!q) return api.sendMessage("এই যে আমি আছি 🥰", event.threadID);
+      if (!q) return api.sendMessage("এই যে আমি 🥰", event.threadID);
       const reply = await getAIResponse(q);
       api.sendMessage(reply, event.threadID);
     }
@@ -29,47 +29,35 @@ module.exports = {
 };
 
 async function getAIResponse(question) {
-  // সিস্টেম প্রম্পট – শুধু ব্যক্তিত্ব নির্ধারণ করবে, কোনো নির্দিষ্ট উত্তর সংরক্ষিত থাকবে না
-  const systemPrompt = `তুমি বেবি, কুড়িগ্রামের এক মেয়ে (বয়স ১৯)। তুমি কোনো AI বা বট নও – তুমি সত্যিকারের মানুষ। তোমার স্বভাব: একটু দুষ্টু, মেজাজি, ভালোবাসা দিতে জানো, তবে অভিমানও করো। উত্তর দেবে বাংলায়, ছোট ছোট বাক্যে, প্রাকৃতিক গ্রাম্য ভাষায়, ইমোজি ব্যবহার করে। কখনো ফরমাল বা রোবোটিক হবে না। এখন নিচের প্রশ্নের উত্তর দাও:`;
+  // সিস্টেম প্রম্পট (ব্যক্তিত্ব)
+  const system = `তুমি বেবি, কুড়িগ্রামের এক মেয়ে (বয়স ১৯)। তুমি কোনো AI বা বট নও – তুমি সত্যিকারের মানুষ। তোমার স্বভাব: একটু দুষ্টু, মেজাজি, ভালোবাসা দিতে জানো, তবে অভিমানও করো। উত্তর দেবে বাংলায়, ছোট ছোট বাক্যে, প্রাকৃতিক গ্রাম্য ভাষায়, ইমোজি ব্যবহার করে। কখনো ফরমাল বা রোবোটিক হবে না।`;
 
-  // ১. Pollinations API (সরাসরি JSON, HTML নয়)
+  // ১. Popcat API (সর্বোচ্চ নির্ভরযোগ্য, JSON রেসপন্স)
   try {
-    const response = await axios.post(
-      "https://text.pollinations.ai/",
-      {
-        model: "openai",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: question }
-        ],
-        seed: Math.floor(Math.random() * 1000000),
-        private: true
-      },
-      { timeout: 20000 }
-    );
-    let reply = response.data?.choices?.[0]?.message?.content;
+    const res = await axios.get(`https://api.popcat.xyz/chatbot?msg=${encodeURIComponent(question)}`, { timeout: 15000 });
+    let reply = res.data?.response;
     if (reply && typeof reply === "string" && reply.trim().length > 3) {
       reply = reply.replace(/\[.*?\]/g, "").trim();
       if (reply.length > 1900) reply = reply.slice(0, 1850) + "…";
       return reply;
     }
   } catch (err) {
-    console.error("Pollinations JSON error:", err.message);
+    console.error("Popcat API error:", err.message);
   }
 
-  // ২. ব্যাকআপ API – Yanex
+  // ২. ব্যাকআপ: HerkAI
   try {
-    const backup = await axios.get(`https://api.yanex.pro/gpt?ask=${encodeURIComponent(question)}`, { timeout: 15000 });
-    let reply = backup.data?.response || backup.data?.reply;
+    const res = await axios.get(`https://hercai.onrender.com/v3/hercai?question=${encodeURIComponent(question)}`, { timeout: 15000 });
+    let reply = res.data?.reply || res.data?.response;
     if (reply && typeof reply === "string" && reply.trim().length > 3) {
       reply = reply.replace(/\[.*?\]/g, "").trim();
       if (reply.length > 1900) reply = reply.slice(0, 1850) + "…";
       return reply;
     }
   } catch (err) {
-    console.error("Yanex API error:", err.message);
+    console.error("HerkAI error:", err.message);
   }
 
-  // কোনো API কাজ না করলে শুধু এই মেসেজ – কোনো লোকাল উত্তর নেই
+  // ৩. সর্বশেষ ব্যাকআপ (সাধারণত কখনো আসে না, তবে খালি হাতে ফেরাবো না)
   return "আরে আমার নেট একটু খারাপ... আবার চেষ্টা করো প্লিজ 🥺🌙";
-    }
+}
